@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "laya-web", "runtimeExecutable": "bun", "runtimeArgs": ["run", "--cwd", "app", "dev"], "port": 5173 }
+  ]
+}
