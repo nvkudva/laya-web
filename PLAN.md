@@ -1,0 +1,145 @@
+# laya-web — Laya in the browser
+
+## What Laya is
+
+Not a generative LLM. A non-autoregressive **encoder + decision head** that answers
+*typed questions* about a *state* in one forward pass, returning calibrated
+probability distributions. No sampling, no tokens out, no hallucination surface.
+
+Architecture (`rl_common.py::DecisionModel`):
+
+```
+input_ids ──> ModernBertModel (AutoModel, no LM head) ──> h [B,L,D]
+              h += type_emb(qtype)[:,None,:]            # nn.Embedding(3, D)
+              h  = 2x nn.TransformerEncoderLayer(D, nhead=D//64, ff=4D,
+                                                 norm_first=True, batch_first=True)
+              m  = gather(h, marker_pos)                # [B,K,D]
+  logits  = scorer(m).squeeze(-1)                       # LayerNorm→Linear(D,D)→GELU→Linear(D,1)
+            .masked_fill(~marker_mask, -1e4)
+  feats   = [top1, top1-top2, norm_entropy, K/255]      # from softmax(logits.detach())
+  act     = act_head(cat([h[:,0], feats]))              # Linear(D+4,256)→GELU→Linear(256,2)
+```
+
+Sequence layout (`build_sequence`):
+`[CLS] <type> question: <instructions> [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] <state> [SEP]`
+Each option is scored at its own `[MASK]` position. Softmax over markers = the answer.
+
+Three question types: `choice` (named options), `score` (ordinal levels, answer is
+the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p[1]`).
+
+## Decisions
+
+| Decision | Choice | Why |
+|---|---|---|
+| Checkpoint | **English root** (ModernBERT-large, 421M, 512 ctx) | best English accuracy (MASSIVE 0.783, XNLI 0.860); the only checkpoint with **fitted temperatures**, so the calibration claim is real out of the box; embeddings are only 13% of params, so int8 risk is low |
+| Runtime | **onnxruntime-web**, wasm SIMD+threads | transformers.js cannot express this custom head; ORT-web's WebGPU EP does not execute `MatMulInteger`/`DynamicQuantizeLinear`, so int8 ⇒ wasm path |
+| Static host | **Cloudflare Pages / Netlify** with a `_headers` file | wasm threads need `COOP: same-origin` + `COEP: credentialless`. GitHub Pages cannot set headers ⇒ single-thread wasm. `credentialless`, not `require-corp`, so the HF CDN response loads without a CORP header |
+| Graphs | **two ONNX files** (encoder, head) | isolates export failures; lets each be quantized independently |
+| Quantization | encoder **int8 dynamic**, head **fp32** | the scorer produces the logits the whole calibration claim rests on, and this checkpoint's `temperature = [1.637, 1.251, 1.983]` plus a populated `temperature_by_options` were fitted on fp32 logits. Quantizing the head would invalidate them |
+| Tokenizer | transformers.js `AutoTokenizer` on `tokenizer.json` | HF tokenizers format loads standalone, no model needed |
+| App | Vite + React + TS + **bun** | no lockfile present |
+| Weight host | user's own HF repo | CORS-enabled, LFS CDN, no size cap |
+| UI v1 | raw JSON request → raw JSON response | user scope call; richer UI is TODO |
+
+## Rejected
+
+- **typed-decisions checkpoint** — a fine-tune on one benchmark's own training split.
+  Base checkpoints score 0.362/0.352 on it zero-shot vs 0.318 random. No transfer.
+- **multilingual checkpoint as v1** — deferred to an on-demand second download.
+  It ships uncalibrated (`temperature = [1,1,1]`, empty `temperature_by_options`),
+  its `tokenizer.json` is 34MB, 61% of its params are embeddings (the part int8
+  handles worst), and it is weaker on English (MASSIVE 0.657 vs 0.783).
+- **typed-decisions checkpoint** — see above; a single-benchmark fine-tune.
+- **Shipping both checkpoints** — ~870MB, over the stated <500MB budget.
+- **transformers.js end to end** — no way to express `marker_pos` gather + custom head.
+- **WebGPU fp16 variant** — only if measured wasm latency is unacceptable. Do not
+  build speculatively.
+- **`COEP: require-corp`** — the HF CDN does not send a CORP header, so weight
+  fetches would fail. `credentialless` instead; verify in Safari before building
+  the worker.
+- **Single fused ONNX graph** — one export failure would be undiagnosable.
+
+## Pipeline
+
+1. **Golden reference.** `uv venv`, pin `transformers>=5.0` (the configs use
+   `layer_types` / `rope_parameters`; 4.x silently misreads this checkpoint's split
+   rope_theta — 160000 on the 10 `full_attention` layers, 10000 on the 18
+   `sliding_attention` layers — with no error, producing plausible-looking garbage).
+   Load `model.safetensors` strict into `DecisionModel`, run
+   `RLAgent.system_one` over ~50 fixtures spanning all three qtypes, K ∈ {2,5,12},
+   short and 1024-token states, non-Latin scripts. Dump token ids, marker
+   positions, raw logits, post-temperature probs, act probs. Every later step is
+   measured against this file.
+2. **Export.** Encoder: strip the `encoder.` prefix, export `ModernBertModel` →
+   `last_hidden_state`, opset ≥17, batch 1, dynamic L. Head: type_emb + 2 layers +
+   gather + scorer + act_head, inputs `hidden / attention_mask / marker_pos /
+   marker_mask / qtype`, dynamic L and K.
+   **Trap:** `nn.TransformerEncoderLayer` takes the fused fastpath under
+   eval+no_grad and will not trace — call
+   `torch.backends.mha.set_fastpath_enabled(False)` before export.
+3. **Quantize.** `onnxruntime.quantization.quantize_dynamic` on the encoder,
+   `QInt8`, MatMul+Gather. Head untouched.
+4. **Node parity gate.** `onnxruntime-node`, vs golden. Label-free, so it works
+   on the 50 fixtures: argmax agreement ≥ 99%, max |Δp| ≤ 0.02, mean
+   KL(p_fp32 ‖ p_int8) ≤ 1e-3. (No ECE gate — 50 fixtures over 15 bins is ~3 per
+   bin, and there are no labels. ECE belongs in the later temperature-fitting
+   step on a labelled set.)
+   Gate fails ⇒ the suspect is the 28 encoder MatMuls, since embeddings are only
+   51.6M of 421M here. Fallback ladder, in order: (a) exclude the first and last
+   two encoder layers from quantization, (b) per-channel weight quantization,
+   (c) fp16 head to buy back ~53MB of budget for a partly-fp16 encoder.
+5. **Port `build_sequence` to TS, exactly.** The leading `" "` before each option
+   text, `[:48]` per-option truncation, the `opt_budget < 16` even-shrink branch,
+   `head_ids[:max(8, opt_budget)]`, the mask-token scrub on instructions/options/
+   state, `truncate_left=False` for the API path. Parity test is token-id equality
+   against the golden dump — not "looks right".
+6. **Post-processing, exactly.** `temp_bucket(qtype, K)` → `temperature_by_options`,
+   falling back to `temperature[qtype]`; softmax on `logits / T`;
+   `confidence = 1 - H(p)/log(K)`; `score = Σ i·p[i]`; `noul = p[1]`;
+   `act_probability = act[0]`.
+7. **App.** Worker holds both sessions. Weights fetched from HF with progress,
+   cached in Cache API (fall back to OPFS). Editable Jev-shaped request JSON in,
+   raw response JSON out.
+
+## Constraints
+
+- Head must stay fp32 through every optimization pass. Anything that touches
+  `scorer` or the 2 head layers invalidates the published temperatures.
+- **Budget is tight: ~395MB int8 encoder + ~106MB fp32 head ≈ 501MB.** The lever
+  if that is too much is an fp16 head (~53MB, total ~448MB) — but that is exactly
+  the trade the fp32-head decision rejected, so measure the calibration cost
+  before taking it.
+- **The English checkpoint is confidently wrong on non-Latin script** — Khmer
+  scores 0.000 accuracy at 0.952 confidence. Confidence gating cannot catch this.
+  The UI must detect non-Latin script in the state and warn, since the model will
+  not signal the failure itself.
+- Expected int8 encoder size is ~395MB. If the export lands far above that,
+  `Gather`/`MatMul` coverage is wrong — do not upload it.
+- `tokenizer.json` is 3.5MB (50368 vocab) — cache separately from the weights.
+- `max_len = 512`, `head_max_len = 192` — note these are **smaller** than the
+  multilingual checkpoint's, so options and state budgets are tighter. Questions whose options do not fit must
+  raise, not silently truncate the answer space — mirror the `ValueError` in
+  `rl_agent_api.py`.
+- Batch is fixed at 1 in the exported graphs. Multi-question requests loop.
+
+## Revisions
+
+- Corrected: the fp32-head rationale originally cited preserving fitted
+  temperatures. The multilingual checkpoint has none — it ships
+  `temperature = [1,1,1]` and an empty `temperature_by_options`. fp32 head is
+  retained for a different reason (clean later fit), and temperature fitting is
+  now an explicit TODO rather than an assumed property.
+- Corrected: parity-gate fallback was fp16 encoder (~674MB, over budget) and is
+  now per-row int8 embeddings (~197MB), which also targets the likelier culprit.
+- Removed the ECE gate from step 4: unevaluable at n=50 without labels.
+- Added cross-origin isolation as a hosting constraint; it rules out GitHub Pages.
+- Note: `position_embedding_type: "sans_pos"` in the mmBERT config is not read by
+  the ModernBert code path. If `AutoConfig` rejects it on transformers 5.x, that
+  is the cause. (Not applicable to the English checkpoint, which uses `absolute`.)
+- **Switched default to the English root checkpoint.** Multilingual is deferred to
+  an on-demand second download. Consequences: fitted temperatures now exist, so
+  the fp32-head decision recovers its original rationale; `max_len` drops 1024→512
+  and `head_max_len` 256→192; `tokenizer.json` drops 34MB→3.5MB; embeddings drop
+  from 61% to 13% of params, so the per-row int8 embedding fallback is no longer
+  the likely fix and was replaced with a layer-exclusion ladder; total size rises
+  to ~501MB; and a non-Latin-script warning becomes a UI requirement.

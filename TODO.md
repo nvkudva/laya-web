@@ -1,0 +1,24 @@
+- [ ] uv venv + transformers>=5.0, torch, onnx, onnxruntime, safetensors
+- [ ] Download laya English root: model.safetensors, encoder/config.json, rl_agent_config.json, tokenizer/
+- [ ] Write ~50 fixture questions (3 qtypes, K in {2,5,12}, short/512-tok states, one non-Latin case)
+- [ ] Run RLAgent.system_one on fixtures, dump golden.json (token ids, marker_pos, logits, probs, act)
+- [ ] Export encoder to ONNX (ModernBertModel, opset 17, dynamic L)
+- [ ] Export head to ONNX (set_fastpath_enabled(False) first; dynamic L and K)
+- [ ] Verify fp32 ONNX pair matches golden to 1e-4 via onnxruntime CPU
+- [ ] quantize_dynamic the encoder to QInt8; leave head fp32
+- [ ] Confirm quantized encoder is ~395MB before uploading
+- [ ] Parity gate in Node: argmax >=99%, max |dp| <=0.02, mean KL <=1e-3
+- [ ] Upload quantized ONNX + tokenizer.json to own HF repo
+- [ ] Scaffold Vite + React + TS with bun
+- [ ] Add _headers with COOP same-origin + COEP credentialless; verify HF weight fetch still loads (incl. Safari)
+- [ ] Port build_sequence to TS; assert token-id equality against golden.json
+- [ ] Port post-processing (temp_bucket, softmax, confidence, score expectation, noul, act)
+- [ ] Inference web worker: dual ORT sessions, weight fetch with progress, Cache API storage
+- [ ] UI v1: editable request JSON textarea, Run button, raw response JSON panel, latency readout
+- [ ] UI v1: non-Latin script detection in state -> warn (English checkpoint is confidently wrong there)
+- [ ] Measure wasm latency for 1 and 10 questions; record in PLAN.md Revisions
+- [ ] Deploy static site to Cloudflare Pages or Netlify (not GitHub Pages - no custom headers)
+- [ ] LATER UI: typed-question builder with choice/score/noul forms and probability bars
+- [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
+- [ ] LATER UI: reliability diagram / ECE view over a small labelled set
+- [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])
