@@ -21,7 +21,7 @@
 - [x] UI v1: non-Latin script detection in state -> warn
 - [x] Measure wasm latency (333ms @L=43, 974ms @L=195, 2437ms @L=512); webgpu rejects 8-bit MatMulNBits
 - [x] Smoke-test the production build (threaded wasm, main thread, 836ms for 3 questions)
-- [ ] Deploy static site to Cloudflare Pages or Netlify (not GitHub Pages - no custom headers)
+- [x] Deploy static site to Cloudflare Pages (https://laya-web.pages.dev)
 - [ ] LATER UI: typed-question builder with choice/score/noul forms and probability bars
 - [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
 - [ ] LATER UI: reliability diagram / ECE view over a small labelled set

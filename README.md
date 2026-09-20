@@ -1,5 +1,7 @@
 # laya-web
 
+**https://laya-web.pages.dev**
+
 [Laya](https://huggingface.co/convaiinnovations/laya) running entirely in the browser,
 with an 8-bit quantized copy of the English checkpoint.
 
@@ -22,6 +24,12 @@ TODO.md        task state
 
 ```bash
 bun run --cwd app dev
+```
+
+Deploy:
+
+```bash
+bun run --cwd app build && bunx wrangler pages deploy app/dist --project-name laya-web
 ```
 
 `/` is the playground, `/parity.html` re-runs both parity gates against the reference
