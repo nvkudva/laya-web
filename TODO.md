@@ -13,7 +13,7 @@
 - [x] Add COOP/COEP (vite dev verified crossOriginIsolated=true); still need _headers for deploy
 - [x] Add _headers with COOP same-origin + COEP credentialless
 - [x] Verify HF weight fetch loads under COEP credentialless (Chromium; 772ms inference)
-- [ ] Verify the same in Safari and Firefox (credentialless support differs)
+- [x] Verify the same in Safari and Firefox (credentialless support differs) — both load
 - [x] Port build_sequence to TS; token ids 26/26 identical to reference
 - [x] Port post-processing (temp_bucket, softmax, confidence, score expectation, noul, act)
 - [x] Weight fetch with progress + Cache API storage (worker removed: ORT threaded wasm hangs in workers in prod builds)
@@ -31,3 +31,4 @@
 - [ ] Revisit off-main-thread inference on a later onnxruntime-web release
 - [x] Answers summary at the top of the distribution column
 - [x] Replace the textarea overlay with CodeMirror (folding, line numbers, wrapping)
+- [x] Safari ran >4.5s unisolated — fixed by switching COEP to require-corp; Safari now isolated, 780ms

@@ -375,3 +375,23 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
 - Third instance of the same specificity tie: `button:hover:not(:disabled)` is (0,2,1),
   and so is `button.weights-delete:hover`, so source order decides. Rules for any
   button variant must sit *after* the global button block.
+
+## Revisions (13)
+
+- **COEP is `require-corp`, not `credentialless`.** The earlier note that
+  `require-corp` "blocks every file here" conflated CORP with CORS. The CORP check
+  only runs on *no-cors* loads; a `fetch()` in cors mode whose chain passes CORS is
+  allowed. Both hops of the Hugging Face weight URL are CORS-ok for our origin (the
+  302 echoes `Origin`, the CDN 200 sends `*`), and Google Fonts sends
+  `cross-origin-resource-policy: cross-origin`, so nothing needs CORP.
+
+  This matters because **Safari does not support `credentialless`**: under it the page
+  was never cross-origin isolated, wasm threads were off, and ORT fell back to one
+  thread on the main thread — 3 questions in ~4.5s with the tab frozen throughout.
+  Verified on a `corp-test` preview: Chromium and Safari both report
+  `crossOriginIsolated === true`, weights load, 3 questions in 759ms / 780ms.
+
+- Hosting on a static HF Space was investigated as the alternative and rejected: a
+  Space 302s large files to the same `us.aws.cdn.hf.co` origin with no CORP, so its
+  `custom_headers` CORP would decorate only the redirect, not the response that
+  matters.

@@ -1,5 +1,7 @@
-# wasm threads need cross-origin isolation. credentialless, not require-corp, so a
-# weight host that sends no CORP header (the Hugging Face CDN) still loads.
+# wasm threads need cross-origin isolation. require-corp works even though the
+# Hugging Face CDN sends no CORP header: the check only applies to no-cors loads,
+# and the weights go through fetch() in cors mode with both hops CORS-ok.
+# credentialless would be equivalent except in Safari, which does not support it.
 /*
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Embedder-Policy: require-corp

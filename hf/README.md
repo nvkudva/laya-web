@@ -22,8 +22,8 @@ language:
 
 # Laya, 8-bit, for the browser
 
-**[▶ Try it — laya-web.pages.dev](https://laya-web.pages.dev)** — loads in a tab, runs
-on your own machine, sends nothing anywhere.
+**[▶ Try it — laya-web.pages.dev](https://laya-web.pages.dev)** — loads in a browser
+tab, runs on your own machine, sends nothing anywhere.
 
 This is [`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya) —
 the English ModernBERT-large checkpoint — exported to ONNX and quantized to 8-bit so
@@ -155,11 +155,12 @@ answer. `max_len` is 512 and `head_max_len` is 192.
   encoder to 271 MB, but argmax collapses to 84.6% and max Δp to 0.347 — not worth it
   for a model whose value is calibrated probabilities.
 - **Cross-origin isolation is required** for wasm threads: `Cross-Origin-Opener-Policy:
-  same-origin` plus `Cross-Origin-Embedder-Policy: credentialless`. Use
-  `credentialless`, not `require-corp` — the Hugging Face CDN sends no
-  `Cross-Origin-Resource-Policy` header, so `require-corp` blocks every file here.
-  Without isolation the runtime falls back to a single thread and gets roughly 6×
-  slower.
+  same-origin` plus `Cross-Origin-Embedder-Policy: require-corp`. The Hugging Face CDN
+  sends no `Cross-Origin-Resource-Policy` header, but it does not need to: COEP runs
+  the CORP check only on *no-cors* loads, and these files are fetched with `fetch()`
+  in cors mode, where both the `resolve/` redirect and the CDN response are CORS-ok.
+  Do not use `credentialless` — **Safari does not support it**, so the page silently
+  loses isolation there, falls back to a single thread and gets roughly 6× slower.
 - **Import `onnxruntime-web/wasm`**, not the default entry, which pulls in a 28 MB
   jsep runtime you will not use.
 - Threaded wasm initialises on the main thread but hangs silently inside a
