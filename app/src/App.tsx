@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_REQUEST, nonLatinFraction } from "./presets";
+import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
 import { LayaSession, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
 import type { LayaConfig, LayaResponse } from "./laya/types";
@@ -19,6 +19,7 @@ export default function App() {
   const [ms, setMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<"bars" | "json">("bars");
+  const [preset, setPreset] = useState(PRESETS[0].id);
 
   useEffect(() => {
     let live = true;
@@ -83,6 +84,17 @@ export default function App() {
 
   const nQuestions = parsed.ok ? Object.keys((parsed.v as { questions: object }).questions ?? {}).length : 0;
 
+  // Switching scenario invalidates whatever is on the right; leaving it there would
+  // read as this scenario's answer.
+  const choosePreset = (p: (typeof PRESETS)[number]) => {
+    setPreset(p.id);
+    setRequest(p.request);
+    setResponse(null);
+    setError(null);
+    setMs(null);
+  };
+  const active = PRESETS.find((p) => p.id === preset);
+
   return (
     <div className="shell">
       <header className="bar">
@@ -122,9 +134,22 @@ export default function App() {
             <h2>Request</h2>
             <span className="panel-note">{nQuestions} question{nQuestions === 1 ? "" : "s"}</span>
           </div>
+          <nav className="presets" aria-label="Example scenarios">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                className="preset"
+                aria-pressed={p.id === preset}
+                onClick={() => choosePreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </nav>
+          {active && <p className="preset-note">{active.note}</p>}
           <textarea
             value={request}
-            onChange={(e) => setRequest(e.target.value)}
+            onChange={(e) => { setRequest(e.target.value); setPreset(""); }}
             spellCheck={false}
             aria-label="Request JSON"
           />

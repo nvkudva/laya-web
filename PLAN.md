@@ -286,3 +286,17 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
 - `ort.env.wasm.wasmPaths` is now set **only** under `import.meta.env.PROD`. Vite
   refuses to transform a `/public` file that source code imports, so setting it in
   dev breaks the dev server; left unset, dev resolves the runtime from node_modules.
+
+## Revisions (8)
+
+- **Five preset scenarios**, chosen to cover the surface rather than to look varied:
+  email triage, moderation guardrail, support routing (8 options — the highest
+  cardinality the UI will meet, and where the published `choice:11+` temperature
+  starts to bite), review scoring (ordinal, so the answer is an expectation), and
+  conversation escalation (**object state**, which exercises the
+  `pyJsonDumps` path rather than a plain string).
+  Cross-checked the object-state preset against PyTorch: escalate 0.4907 vs 0.5101
+  (Δ 0.019, inside the gate — a p≈0.5 binary is where quantization drift is largest),
+  churn 1.03 vs 1.06, same argmax throughout.
+- Switching scenario clears the response. A stale distribution next to a new request
+  reads as that request's answer.

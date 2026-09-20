@@ -159,3 +159,14 @@ footer a { color: var(--signal); }
 @media (prefers-reduced-motion: no-preference) {
   .bar-fill { transition: width 220ms cubic-bezier(0.2, 0, 0, 1); }
 }
+
+/* --- scenario picker ----------------------------------------------------- */
+.presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.preset {
+  font: 400 11.5px var(--mono); padding: 3px 8px; border-radius: 2px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--rule);
+}
+.preset:hover:not([aria-pressed="true"]) { color: var(--ink); border-color: var(--rule-strong); background: transparent; }
+.preset[aria-pressed="true"] { background: var(--rule-strong); border-color: var(--rule-strong); color: var(--surface); }
+.preset-note { margin: 8px 12px 0; font-size: 12px; color: var(--muted); }

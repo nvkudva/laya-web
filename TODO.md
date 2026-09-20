@@ -24,7 +24,7 @@
 - [x] Deploy static site to Cloudflare Pages (https://laya-web.pages.dev)
 - [x] Probability bars for all three question types (distribution / json toggle)
 - [ ] LATER UI: typed-question form builder (add/remove questions without editing JSON)
-- [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
+- [x] Preset scenarios: email triage, moderation guardrail, support routing, review scoring, conversation escalation
 - [ ] LATER UI: reliability diagram / ECE view over a small labelled set
 - [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])
 - [x] Exclude app/public/models from the production build once VITE_MODELS_BASE points at HF
