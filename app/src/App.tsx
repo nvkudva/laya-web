@@ -21,7 +21,7 @@ export default function App() {
   useEffect(() => {
     let live = true;
     const threads = Number(new URLSearchParams(location.search).get("threads")) || undefined;
-    LayaSession.load("/models/v1", (p: LoadProgress) => {
+    LayaSession.load(import.meta.env.VITE_MODELS_BASE || "/models/v1", (p: LoadProgress) => {
       if (live) setLoad((s) => ({ ...s, files: { ...s.files, [p.file]: p } }));
     }, threads).then((s) => {
       if (!live) return;

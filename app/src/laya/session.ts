@@ -1,4 +1,6 @@
-import * as ort from "onnxruntime-web";
+// wasm-only entry: the default entry drags in the jsep runtime, whose .wasm is 28.3MB
+// and over Cloudflare Pages' 25MiB per-file cap. We only ever use the wasm EP.
+import * as ort from "onnxruntime-web/wasm";
 import { buildSequence, renderOptions, toInternal, type Tok } from "./sequence";
 import { formatAnswer, softmax, temperatureFor } from "./postprocess";
 import { loadTokenizer } from "./tokenizer";

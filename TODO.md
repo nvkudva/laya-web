@@ -8,7 +8,7 @@
 - [x] Quantize encoder: weight-only NBits8 bs=32 + per-row-block int8 embeddings (dynamic int8 rejected)
 - [x] Confirm quantized encoder size (439.5MB; pair totals 495.6MB)
 - [x] Parity gate in Node: argmax 100% PASS, mean KL 4.5e-04 PASS, max |dp| 0.0298 FAIL (gate 0.02)
-- [ ] Upload quantized ONNX + tokenizer.json to own HF repo
+- [ ] Upload quantized ONNX + tokenizer.json to nvkudva/laya-web-q8 (needs your HF token)
 - [x] Scaffold Vite + React + TS with bun
 - [x] Add COOP/COEP (vite dev verified crossOriginIsolated=true); still need _headers for deploy
 - [x] Add _headers with COOP same-origin + COEP credentialless
@@ -25,5 +25,5 @@
 - [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
 - [ ] LATER UI: reliability diagram / ECE view over a small labelled set
 - [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])
-- [ ] Exclude app/public/models from the production build once VITE_MODELS_BASE points at HF
+- [x] Exclude app/public/models from the production build once VITE_MODELS_BASE points at HF
 - [ ] Revisit off-main-thread inference on a later onnxruntime-web release

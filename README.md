@@ -31,6 +31,11 @@ The dev server sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Poli
 which wasm threads require. `app/public/_headers` carries the same for Cloudflare Pages
 and Netlify; GitHub Pages cannot set headers and will fall back to single-thread wasm.
 
+`dist` is 15MB and no file in it exceeds 25 MiB, which Cloudflare Pages requires.
+Getting there needed the `onnxruntime-web/wasm` entry rather than the default one
+(the jsep runtime's `.wasm` is 28.3MB) and a `vite.config.ts` step that drops the ORT
+`.wasm` the bundler emits into `assets/` but never loads.
+
 Weights are served from `app/public/models/v1` by default. The version segment is
 part of the cache key, so re-quantizing means bumping it rather than silently
 serving stale weights to anyone who already cached them. Set `VITE_MODELS_BASE` to a

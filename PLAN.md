@@ -242,3 +242,16 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
 - Weight URLs are versioned (`/models/v1/…`). The Cache API keys on URL, so
   re-quantizing to the same path would pin every returning visitor to whatever they
   cached first, silently.
+
+## Revisions (5)
+
+- Import `onnxruntime-web/wasm`, not `onnxruntime-web`. The default entry pulls in the
+  jsep runtime whose `.wasm` is 28.3MB — over **Cloudflare Pages' 25 MiB per-file
+  cap**, so a deploy would have failed on a file nobody uses. We only ever run the
+  wasm EP. `probe.html` keeps the default entry (it has to, to test WebGPU) and is
+  therefore a dev-only page, excluded from the build.
+- `vite.config.ts` trims `dist`: the 524MB local weight copy once `VITE_MODELS_BASE`
+  is set, and the ORT `.wasm` the bundler emits into `assets/` — including a 26.9MB
+  asyncify variant that is also over the cap — since `wasmPaths` always resolves to
+  `/ort/`. `dist` goes from 95MB to 15MB, with no file over 25 MiB.
+- Deploy build verified with local weights: 767ms for the 3-question preset.
