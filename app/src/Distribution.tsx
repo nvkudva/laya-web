@@ -74,7 +74,7 @@ export function Distribution({ id, answer }: { id: string; answer: Answer }) {
       <footer className="dist-foot">
         <span>
           {answer.type === "score"
-            ? `expectation over ${data.length} levels`
+            ? `expectation, ${data.length} levels`
             : answer.type === "noul"
               ? "p(true)"
               : `${data.length} options`}

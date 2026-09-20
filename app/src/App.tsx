@@ -3,6 +3,7 @@ import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
 import { LayaSession, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
 import { JsonEditor, JsonView } from "./Json";
+import { Icon } from "./Icon";
 import type { LayaConfig, LayaResponse } from "./laya/types";
 
 const TOTAL_BYTES = 524_100_000;
@@ -101,11 +102,14 @@ export default function App() {
       <header className="bar">
         <div className="bar-inner">
           <div>
-            <h1 className="wordmark">Laya</h1>
+            <h1 className="wordmark">Laya on Web</h1>
             <p className="tagline">
-              A decision model, not a chat model. It reads a state, scores the options you
-              enumerate, and returns one calibrated distribution per question. Runs entirely
-              in this tab.
+              Running in your browser — no server needed. Laya is a decision model, not a
+              chat model: it reads a state, scores the options you enumerate, and returns
+              one calibrated distribution per question.{" "}
+              <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">
+                More details<Icon name="external" />
+              </a>
             </p>
           </div>
           <dl className="readout">
@@ -132,9 +136,11 @@ export default function App() {
       <main>
         <section className="panel">
           <div className="panel-head">
-            <h2>Request</h2>
+            <h2>Request <span className="panel-qualifier">(editable)</span></h2>
             <span className="panel-note">{nQuestions} question{nQuestions === 1 ? "" : "s"}</span>
           </div>
+          <section className="presets-block" aria-labelledby="presets-heading">
+          <h3 className="presets-heading" id="presets-heading">Presets</h3>
           <nav className="presets" aria-label="Example scenarios">
             {PRESETS.map((p) => (
               <button
@@ -148,6 +154,7 @@ export default function App() {
             ))}
           </nav>
           {active && <p className="preset-note">{active.note}</p>}
+          </section>
           <JsonEditor
             value={request}
             onChange={(v) => { setRequest(v); setPreset(""); }}
@@ -172,7 +179,7 @@ export default function App() {
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Distribution</h2>
+            <h2>Response — Distribution</h2>
             <span className="panel-note">{response ? `${nAnswers} answered` : ""}</span>
           </div>
           {error ? (
@@ -190,7 +197,7 @@ export default function App() {
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Response</h2>
+            <h2>Response — JSON</h2>
             <span className="panel-note">
               {response ? `${response.usage.input_tokens} input tokens` : ""}
             </span>
@@ -205,14 +212,55 @@ export default function App() {
 
       <footer>
         <div className="footer-inner">
-          <p style={{ margin: 0 }}>
-            Weights from{" "}
-            <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">convaiinnovations/laya</a>,
-            Apache 2.0. Quantized to 8-bit weight-only and run with onnxruntime-web on WebAssembly.
-          </p>
-          <p style={{ margin: 0 }}>
-            Question types: <code>noul</code> answers true or false, <code>choice</code> picks one
-            named option, <code>score</code> returns the expectation over ordered levels.
+          <ul className="credits">
+            <li>
+              <Icon name="model" />
+              <span className="credit-label">Model</span>
+              <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">
+                convaiinnovations/laya
+              </a>
+              <span className="credit-note">
+                by <a href="https://github.com/NandhaKishorM" target="_blank" rel="noreferrer">Nandakishor M</a>,
+                {" "}Convai Innovations
+              </span>
+            </li>
+            <li>
+              <Icon name="source" />
+              <span className="credit-label">Model source</span>
+              <a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noreferrer">
+                NandhaKishorM/laya
+              </a>
+              <span className="credit-note">the original training and inference code</span>
+            </li>
+            <li>
+              <Icon name="person" />
+              <span className="credit-label">Quantized by</span>
+              <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">
+                nvkudva/laya-web-q8
+              </a>
+              <span className="credit-note">8-bit weight-only, exported to ONNX for the browser</span>
+            </li>
+            <li>
+              <Icon name="source" />
+              <span className="credit-label">This page</span>
+              <a href="https://github.com/nvkudva/laya-web" target="_blank" rel="noreferrer">
+                nvkudva/laya-web
+              </a>
+              <span className="credit-note">export pipeline, parity harness and playground</span>
+            </li>
+            <li>
+              <Icon name="scale" />
+              <span className="credit-label">Licence</span>
+              <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
+                Apache 2.0
+              </a>
+              <span className="credit-note">weights and code alike</span>
+            </li>
+          </ul>
+          <p className="footer-note">
+            Runs on onnxruntime-web over WebAssembly. Question types: <code>noul</code> answers
+            true or false, <code>choice</code> picks one named option, <code>score</code> returns
+            the expectation over ordered levels.
           </p>
         </div>
       </footer>
