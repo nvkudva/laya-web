@@ -117,12 +117,14 @@ export default function App() {
     <div className="shell">
       <header className="bar">
         <div className="bar-inner">
-          <div>
-            <h1 className="wordmark">Laya on Web</h1>
+          <div className="bar-head">
+            <h1 className="wordmark">Laya — System One decision model — running fully in browser</h1>
             <p className="tagline">
-              Running in your browser — no server needed. Laya is a decision model, not a
-              chat model: it reads a state, scores the options you enumerate, and returns
-              one calibrated distribution per question.{" "}
+              It is not a chat model: it reads a state, scores the options you enumerate, and
+              returns one calibrated distribution per question. It runs on onnxruntime-web over
+              WebAssembly, so nothing leaves the browser. Question types: <b>noul</b> answers
+              true or false, <b>choice</b> picks one named option, <b>score</b> returns the
+              expectation over ordered levels.{" "}
               <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">
                 More details<Icon name="external" />
               </a>
@@ -236,32 +238,47 @@ export default function App() {
 
       <footer>
         <div className="footer-inner">
-          <ul className="credits">
-            <li>
-              <Icon name="model" />
-              <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">convaiinnovations/laya</a>
-              <span className="credit-note">
-                by <a href="https://github.com/NandhaKishorM" target="_blank" rel="noreferrer">Nandakishor M</a>, Convai Innovations
-              </span>
-            </li>
-            <li>
-              <Icon name="source" />
-              <a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noreferrer">NandhaKishorM/laya</a>
-            </li>
-            <li>
-              <Icon name="person" />
-              <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">nvkudva/laya-web-q8</a>
-              <span className="credit-note">8-bit</span>
-            </li>
-            <li>
-              <Icon name="source" />
-              <a href="https://github.com/nvkudva/laya-web" target="_blank" rel="noreferrer">nvkudva/laya-web</a>
-            </li>
-            <li>
-              <Icon name="scale" />
-              <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">Apache 2.0</a>
-            </li>
-          </ul>
+          <section className="credit-group">
+            <h2>Credits</h2>
+            <ul className="credits">
+              <li>
+                <Icon name="person" />
+                <a href="https://github.com/NandhaKishorM" target="_blank" rel="noreferrer">Nandakishor M</a>
+                <span className="credit-note">Convai Innovations</span>
+              </li>
+              <li>
+                <Icon name="model" />
+                <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">convaiinnovations/laya</a>
+              </li>
+              <li>
+                <Icon name="source" />
+                <a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noreferrer">NandhaKishorM/laya</a>
+              </li>
+              <li>
+                <Icon name="scale" />
+                <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">Apache 2.0</a>
+              </li>
+            </ul>
+          </section>
+          <section className="credit-group">
+            <h2>Source</h2>
+            <ul className="credits">
+              <li>
+                <Icon name="person" />
+                <a href="https://github.com/nvkudva" target="_blank" rel="noreferrer">nvkudva</a>
+                <span className="credit-note">quantization and this page</span>
+              </li>
+              <li>
+                <Icon name="model" />
+                <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">nvkudva/laya-web-q8</a>
+                <span className="credit-note">8-bit</span>
+              </li>
+              <li>
+                <Icon name="source" />
+                <a href="https://github.com/nvkudva/laya-web" target="_blank" rel="noreferrer">nvkudva/laya-web</a>
+              </li>
+            </ul>
+          </section>
         </div>
       </footer>
     </div>

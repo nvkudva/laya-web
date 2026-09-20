@@ -82,9 +82,11 @@ body {
   background: var(--surface);
   padding: 14px 16px 12px;
 }
-.bar-inner { max-width: 1180px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: baseline; }
+.bar-inner { max-width: 1680px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: baseline; }
 .wordmark { font-weight: 600; font-size: 19px; letter-spacing: -0.015em; margin: 0; }
-.tagline { color: var(--muted); font-size: 13px; max-width: 46ch; margin: 0; }
+.tagline { color: var(--muted); font-size: 13px; max-width: 88ch; margin: 4px 0 0; line-height: 1.55; }
+.tagline b { font-family: var(--mono); font-weight: 400; color: var(--ink); }
+.bar-head { flex: 1 1 560px; min-width: 0; }
 .readout { margin-left: auto; display: flex; gap: 22px; }
 .readout div { display: flex; flex-direction: column; gap: 1px; }
 .readout dt { color: var(--muted); font-size: 11px; }
@@ -167,7 +169,13 @@ button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .notice { flex: none; margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); background: var(--warn-bg); color: var(--warn); font-size: 12.5px; }
 
 footer { flex: none; border-top: 1px solid var(--rule); background: var(--surface); }
-.footer-inner { max-width: 1680px; margin: 0 auto; padding: 7px 16px 8px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+.footer-inner {
+  max-width: 1680px; margin: 0 auto; padding: 7px 16px 8px;
+  color: var(--muted); font-size: 11.5px; line-height: 1.5;
+  display: flex; flex-wrap: wrap; gap: 2px 26px;
+}
+.credit-group { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; }
+.credit-group h2 { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--ink); }
 footer a { color: var(--signal); }
 
 @media (max-width: 600px) {
@@ -256,8 +264,10 @@ footer a { color: var(--signal); }
 .presets { padding: 7px 12px 0; }
 .preset-note { margin: 7px 12px 0; }
 
-.credits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 16px; }
-.credits li { display: flex; align-items: baseline; gap: 0 5px; }
+.credits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; }
+/* the icon is an inline-svg box: baseline alignment sits it low against the text */
+.credits li { display: flex; align-items: center; gap: 0 5px; }
+.credits .icon { margin-right: 0; vertical-align: baseline; }
 .credits a { font-family: var(--mono); }
 .credit-note { color: var(--muted); }
 
