@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
 import { LayaSession, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
+import { JsonEditor, JsonView } from "./Json";
 import type { LayaConfig, LayaResponse } from "./laya/types";
 
 const TOTAL_BYTES = 524_100_000;
@@ -18,7 +19,6 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [ms, setMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<"bars" | "json">("bars");
   const [preset, setPreset] = useState(PRESETS[0].id);
 
   useEffect(() => {
@@ -94,6 +94,7 @@ export default function App() {
     setMs(null);
   };
   const active = PRESETS.find((p) => p.id === preset);
+  const nAnswers = response ? Object.keys(response.answers).length : 0;
 
   return (
     <div className="shell">
@@ -147,11 +148,10 @@ export default function App() {
             ))}
           </nav>
           {active && <p className="preset-note">{active.note}</p>}
-          <textarea
+          <JsonEditor
             value={request}
-            onChange={(e) => { setRequest(e.target.value); setPreset(""); }}
-            spellCheck={false}
-            aria-label="Request JSON"
+            onChange={(v) => { setRequest(v); setPreset(""); }}
+            label="Request JSON"
           />
           {scriptWarning !== null && (
             <p className="notice">
@@ -172,27 +172,33 @@ export default function App() {
 
         <section className="panel">
           <div className="panel-head">
+            <h2>Distribution</h2>
+            <span className="panel-note">{response ? `${nAnswers} answered` : ""}</span>
+          </div>
+          {error ? (
+            <pre className="code json-view" style={{ color: "var(--warn)" }}>{error}</pre>
+          ) : response ? (
+            <div className="dist-scroll">
+              {Object.entries(response.answers).map(([id, ans]) => (
+                <Distribution key={id} id={id} answer={ans} />
+              ))}
+            </div>
+          ) : (
+            <pre className="code json-view empty">Each answer is one probability distribution over the options you listed.</pre>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
             <h2>Response</h2>
             <span className="panel-note">
               {response ? `${response.usage.input_tokens} input tokens` : ""}
             </span>
-            <div className="toggle" role="group" aria-label="Response view">
-              <button onClick={() => setView("bars")} aria-pressed={view === "bars"}>distribution</button>
-              <button onClick={() => setView("json")} aria-pressed={view === "json"}>json</button>
-            </div>
           </div>
-          {error ? (
-            <pre className="json" style={{ color: "var(--warn)" }}>{error}</pre>
-          ) : response && view === "bars" ? (
-            <div className="dist-scroll">
-              {Object.entries(response.answers).map(([id, a]) => (
-                <Distribution key={id} id={id} answer={a} />
-              ))}
-            </div>
-          ) : response ? (
-            <pre className="json">{JSON.stringify(response, null, 2)}</pre>
+          {response && !error ? (
+            <JsonView src={JSON.stringify(response, null, 2)} />
           ) : (
-            <pre className="json empty">Run a request and the answers appear here, with the full probability distribution behind each one.</pre>
+            <pre className="code json-view empty">The raw system_one() response, ready to paste into your own integration.</pre>
           )}
         </section>
       </main>

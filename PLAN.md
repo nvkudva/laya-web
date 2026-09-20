@@ -300,3 +300,31 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   churn 1.03 vs 1.06, same argmax throughout.
 - Switching scenario clears the response. A stale distribution next to a new request
   reads as that request's answer.
+
+## Revisions (9)
+
+- **Three columns** — request, distribution, raw response — replacing the
+  distribution/json toggle. The toggle made the two readings of the same answer
+  mutually exclusive when the whole point is to compare them.
+- **JSON syntax colouring** on both. The response is a plain highlighted `<pre>`;
+  the request is the overlay technique — a transparent `<textarea>` over a painted
+  `<pre>`, scroll kept in sync. Both layers share one `.code` rule, because any
+  divergence in font, size, padding, line-height or tab-size puts the caret off the
+  glyphs. Verified in-browser: computed font, line-height, padding, white-space,
+  tab-size and bounding boxes are identical across the two layers.
+  Token colours were checked for WCAG text contrast, not eyeballed — all five clear
+  4.5:1 on their surface in both modes. Punctuation was re-stepped twice
+  (`#7b858c` → `#68727a` light, `#79848b` → `#97a1a8` dark) to get it over the line.
+- **Panels fill the viewport** at the three-column breakpoint and scroll internally.
+  Two bugs found doing this, both worth recording because both were silent:
+  - `min-height: 60vh` in a media query placed *before* the base `.panel` rule lost
+    to it on source order at equal specificity, collapsing the editor to 0px.
+    Narrow-screen overrides now live at the end of the sheet.
+  - The editor's two layers are absolutely positioned, so they contribute nothing to
+    intrinsic height; `flex: 1` alone gives 0 whenever the panel has no definite
+    height to divide. Scroll areas carry an explicit `min-height`.
+- Viewport-filling applies **only** above 1240px. Below that the grid wraps to two
+  rows, and splitting one screen between two rows left every panel at 257px with an
+  empty cell — so the page scrolls and each panel gets a readable slice instead.
+  Measured: 1500px → 3 columns, panels 630px, no page scroll; 1000px → 2 columns,
+  panels 441px, page scrolls.

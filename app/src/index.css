@@ -10,6 +10,12 @@
   --signal: #1d5fd4;
   --chart: #1d5fd4;        /* validated: L in band, >=3:1 on the light surface */
   --track: #dfe3e6;
+  /* JSON tokens -- every one clears 4.5:1 on its surface */
+  --t-key: #14181c;
+  --t-str: #0a6b52;
+  --t-num: #1d5fd4;
+  --t-lit: #8a4b9c;
+  --t-punct: #68727a;
   --warn: #8a5a10;
   --warn-bg: #f6ecd8;
   --sans: "IBM Plex Sans", system-ui, sans-serif;
@@ -26,6 +32,11 @@
     --signal: #6ea0ff;
     --chart: #4a86f0;      /* re-stepped for dark: #6ea0ff fails the lightness band */
     --track: #262e35;
+    --t-key: #e4e8ea;
+    --t-str: #5cc2a0;
+    --t-num: #7fb0ff;
+    --t-lit: #c99ad8;
+    --t-punct: #97a1a8;
     --warn: #e0ae5c;
     --warn-bg: #2b2415;
   }
@@ -43,7 +54,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.shell { display: flex; flex-direction: column; min-height: 100%; }
+.shell { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 
 /* --- instrument bar ----------------------------------------------------- */
 .bar {
@@ -60,7 +71,7 @@ body {
 .readout dd { margin: 0; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 /* --- load sequence ------------------------------------------------------ */
-.load { border-bottom: 1px solid var(--rule); background: var(--surface); }
+.load { flex: none; border-bottom: 1px solid var(--rule); background: var(--surface); }
 .load-inner { max-width: 1180px; margin: 0 auto; padding: 10px 16px 12px; }
 .load-line { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .load-line b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -68,23 +79,51 @@ body {
 .rule span { position: absolute; inset: 0 auto 0 0; background: var(--rule-strong); }
 
 /* --- panels ------------------------------------------------------------- */
-main { flex: 1; max-width: 1180px; width: 100%; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: start; }
-@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+/* Three panels sharing the viewport's leftover height: main is the only thing that
+   grows, and every nesting level between it and a scroll area needs min-height:0 or
+   the flex children refuse to shrink and the page grows a second scrollbar. */
+main {
+  flex: 1; min-height: 0; width: 100%; max-width: 1680px; margin: 0 auto; padding: 16px;
+  display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 1240px) { main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
 
-.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; display: flex; flex-direction: column; min-height: 0; }
-.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 2px; display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; }
+.panel-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
 .panel-head h2 { margin: 0; font-size: 13px; font-weight: 600; }
 .panel-note { color: var(--muted); font-size: 12px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-textarea, pre.json {
+/* Both editor layers and the read-only view share these metrics exactly. Any
+   divergence in font, size, padding or line-height puts the caret off the glyphs. */
+.code {
   font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
-  margin: 0; padding: 12px; border: 0; background: transparent; color: inherit;
-  width: 100%; min-height: 440px; resize: vertical; tab-size: 2;
-  overflow: auto; white-space: pre; word-break: normal;
+  margin: 0; padding: 12px; border: 0; tab-size: 2;
+  white-space: pre; word-break: normal; overflow-wrap: normal;
 }
-textarea:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
-pre.json { min-height: 440px; }
-pre.json.empty { color: var(--muted); white-space: pre-wrap; }
+.t-key { color: var(--t-key); }
+.t-str { color: var(--t-str); }
+.t-num { color: var(--t-num); }
+.t-lit { color: var(--t-lit); }
+.t-punct { color: var(--t-punct); }
+
+/* min-height keeps the editor from collapsing when the panel has no definite
+   height to hand it -- the paint and input layers are absolutely positioned and
+   contribute nothing to intrinsic size. */
+.editor { position: relative; flex: 1; min-height: 220px; }
+.editor-paint, .editor-input { position: absolute; inset: 0; overflow: auto; }
+.editor-paint { pointer-events: none; }
+.editor-input {
+  resize: none; background: transparent; color: transparent; caret-color: var(--ink);
+  -webkit-text-fill-color: transparent;
+}
+.editor-input::selection { background: color-mix(in srgb, var(--signal) 28%, transparent); }
+.editor-input:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+
+.json-view { flex: 1; min-height: 220px; overflow: auto; color: var(--t-punct); }
+.json-view.empty { color: var(--muted); white-space: pre-wrap; }
+
+.actions { flex: none; }
 
 .actions { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--rule); }
 button {
@@ -97,9 +136,9 @@ button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .status { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .status.bad { color: var(--warn); }
 
-.notice { margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); background: var(--warn-bg); color: var(--warn); font-size: 12.5px; }
+.notice { flex: none; margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); background: var(--warn-bg); color: var(--warn); font-size: 12.5px; }
 
-footer { border-top: 1px solid var(--rule); background: var(--surface); }
+footer { flex: none; border-top: 1px solid var(--rule); background: var(--surface); }
 .footer-inner { max-width: 1180px; margin: 0 auto; padding: 14px 16px 20px; color: var(--muted); font-size: 12.5px; display: grid; gap: 6px; }
 footer a { color: var(--signal); }
 
@@ -140,16 +179,7 @@ footer a { color: var(--signal); }
 .dist-foot { display: flex; align-items: baseline; gap: 4px 14px; margin-top: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .dist-meta { margin-left: auto; display: flex; gap: 14px; white-space: nowrap; }
 
-/* --- view toggle -------------------------------------------------------- */
-.toggle { display: flex; border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
-.toggle button {
-  font: 500 11.5px var(--mono); padding: 3px 9px; border: 0; border-radius: 0;
-  background: transparent; color: var(--muted);
-}
-.toggle button[aria-pressed="true"] { background: var(--rule-strong); color: var(--surface); }
-.toggle button:hover:not([aria-pressed="true"]) { background: var(--track); color: var(--ink); }
-
-.dist-scroll { overflow: auto; min-height: 440px; flex: 1; }
+.dist-scroll { overflow: auto; flex: 1; min-height: 220px; }
 
 @media (max-width: 600px) {
   .bar-row { grid-template-columns: minmax(0, 7em) 1fr 3.4em; gap: 8px; }
@@ -161,7 +191,7 @@ footer a { color: var(--signal); }
 }
 
 /* --- scenario picker ----------------------------------------------------- */
-.presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.presets { flex: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
 .preset {
   font: 400 11.5px var(--mono); padding: 3px 8px; border-radius: 2px;
   background: transparent; color: var(--muted);
@@ -169,4 +199,15 @@ footer a { color: var(--signal); }
 }
 .preset:hover:not([aria-pressed="true"]) { color: var(--ink); border-color: var(--rule-strong); background: transparent; }
 .preset[aria-pressed="true"] { background: var(--rule-strong); border-color: var(--rule-strong); color: var(--surface); }
-.preset-note { margin: 8px 12px 0; font-size: 12px; color: var(--muted); }
+.preset-note { flex: none; margin: 8px 12px 0; font-size: 12px; color: var(--muted); }
+
+/* --- wrapped layout ------------------------------------------------------
+   Must come last: these share specificity with the base .panel rule, so source
+   order is what decides. Below the three-column breakpoint the page scrolls
+   normally and each panel takes a readable slice of the viewport instead of
+   fighting for a share of one screen. */
+@media (max-width: 1240px) {
+  .shell { height: auto; min-height: 100%; }
+  main { min-height: 0; }
+  .panel { height: auto; min-height: 58vh; }
+}
