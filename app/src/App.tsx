@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
-import { LayaSession, type LoadProgress } from "./laya/session";
+import { LayaSession, cachedWeightBytes, deleteWeightCache, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
 import { JsonEditor, JsonView } from "./JsonCode";
 import { Answers } from "./Answers";
@@ -22,6 +22,8 @@ export default function App() {
   const [ms, setMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [preset, setPreset] = useState(PRESETS[0].id);
+  const [cachedBytes, setCachedBytes] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [theme, setTheme] = useState<"system" | "light" | "dark">(() => {
     try { return (localStorage.getItem("laya-theme") as "light" | "dark") ?? "system"; } catch { return "system"; }
   });
@@ -48,6 +50,7 @@ export default function App() {
       laya.current = s;
       setCfg(s.cfg);
       setLoad((st) => ({ ...st, done: true }));
+      cachedWeightBytes().then((n) => live && setCachedBytes(n));
     }).catch((e) => live && setError(String(e?.message ?? e)));
     return () => { live = false; };
   }, []);
@@ -130,6 +133,7 @@ export default function App() {
               </a>
             </p>
           </div>
+          <div className="bar-aside">
           <dl className="readout">
             <div><dt>Checkpoint</dt><dd>ModernBERT-large</dd></div>
             <div><dt>Weights</dt><dd>8-bit + fp16, 524 MB</dd></div>
@@ -143,20 +147,39 @@ export default function App() {
               {theme}
             </button>
           </dl>
+          <div className="weights" aria-live="polite">
+            {!load.done ? (
+              <>
+                <div className="weights-line">
+                  <span>{fromCache ? "Reading weights from cache" : "Downloading weights"}</span>
+                  <b>{mb(loaded)} / {mb(TOTAL_BYTES)} MB</b>
+                </div>
+                <div className="rule"><span style={{ width: `${Math.min(100, (loaded / TOTAL_BYTES) * 100)}%` }} /></div>
+              </>
+            ) : (
+              <div className="weights-line">
+                <span>{cachedBytes ? "Weights cached in this browser" : "Weights loaded, not cached"}</span>
+                <b>{mb(cachedBytes || loaded)} MB</b>
+                {cachedBytes ? (
+                  <button
+                    className={confirmDelete ? "weights-delete armed" : "weights-delete"}
+                    onClick={async () => {
+                      if (!confirmDelete) { setConfirmDelete(true); setTimeout(() => setConfirmDelete(false), 4000); return; }
+                      await deleteWeightCache();
+                      setCachedBytes(0);
+                      setConfirmDelete(false);
+                    }}
+                    title="Free the cached weights. The model stays loaded for this session; the next visit downloads again."
+                  >
+                    {confirmDelete ? "Confirm delete" : "Delete"}
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+          </div>
         </div>
       </header>
-
-      {!load.done && (
-        <section className="load" aria-live="polite">
-          <div className="load-inner">
-            <div className="load-line">
-              <span>{fromCache ? "Reading weights from cache" : "Downloading weights"}</span>
-              <b>{mb(loaded)} / {mb(TOTAL_BYTES)} MB</b>
-            </div>
-            <div className="rule"><span style={{ width: `${Math.min(100, (loaded / TOTAL_BYTES) * 100)}%` }} /></div>
-          </div>
-        </section>
-      )}
 
       <main>
         <section className="panel">

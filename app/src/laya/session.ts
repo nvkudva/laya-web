@@ -50,6 +50,27 @@ async function fetchCached(url: string, onProgress?: (p: LoadProgress) => void):
   return buf;
 }
 
+/** Bytes the weight cache actually holds -- reported rather than assumed, since a
+ *  quota failure on put() leaves a loaded session with nothing cached. */
+export async function cachedWeightBytes(): Promise<number> {
+  try {
+    const cache = await caches.open(CACHE);
+    let n = 0;
+    for (const k of await cache.keys()) {
+      const r = await cache.match(k);
+      if (!r) continue;
+      n += Number(r.headers.get("content-length") ?? 0) || (await r.blob()).size;
+    }
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
+export async function deleteWeightCache(): Promise<void> {
+  try { await caches.delete(CACHE); } catch { /* blocked storage */ }
+}
+
 export class LayaSession {
   readonly cfg: LayaConfig;
   private tok: Tok;

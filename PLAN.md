@@ -356,3 +356,22 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   carries the dark tokens outside the media query so an explicit choice beats the OS.
 - Footer compressed to one line of icon + link, ~34px tall. The per-credit
   descriptions moved to the README, where anyone who wants them is already looking.
+
+## Revisions (12)
+
+- The weight readout moved from a full-width bar under the header into the header's
+  right column, below the checkpoint/weights/context row, and now persists after the
+  download instead of unmounting. Once loaded it reports what the Cache API actually
+  holds -- measured with `cachedWeightBytes()`, not assumed -- because a quota failure
+  on `cache.put()` leaves a working session with nothing cached, and the old UI could
+  not tell those apart.
+- `deleteWeightCache()` drops the whole `laya-weights-v1` cache. It deliberately does
+  not reload: the in-memory session keeps working, and the readout switches to
+  "Weights loaded, not cached". Delete is two-step (arm, then confirm, auto-disarming
+  after 4s) rather than a `confirm()` dialog.
+- The reported total covers every entry in the cache, including copies left by an
+  earlier `base` path -- in dev both `/models/` and `/models/v1/` were present, so the
+  honest number was 1048.2 MB. Production fetches from one HF base, so one copy.
+- Third instance of the same specificity tie: `button:hover:not(:disabled)` is (0,2,1),
+  and so is `button.weights-delete:hover`, so source order decides. Rules for any
+  button variant must sit *after* the global button block.
