@@ -1,122 +1,176 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_REQUEST, nonLatinFraction } from "./presets";
+import type { LayaConfig, LayaResponse } from "./laya/types";
 
-function App() {
-  const [count, setCount] = useState(0)
+const TOTAL_BYTES = 524_100_000;
+const mb = (n: number) => (n / 1e6).toFixed(1);
+
+interface Loading { files: Record<string, { loaded: number; total: number; cached: boolean }>; done: boolean }
+
+export default function App() {
+  const worker = useRef<Worker | null>(null);
+  const nextId = useRef(1);
+  const [load, setLoad] = useState<Loading>({ files: {}, done: false });
+  const [cfg, setCfg] = useState<LayaConfig | null>(null);
+  const [request, setRequest] = useState(DEFAULT_REQUEST);
+  const [response, setResponse] = useState<LayaResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ms, setMs] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const w = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+    worker.current = w;
+    w.onmessage = (e) => {
+      const m = e.data;
+      if (m.kind === "progress") {
+        setLoad((s) => ({ ...s, files: { ...s.files, [m.file]: { loaded: m.loaded, total: m.total, cached: m.cached } } }));
+      } else if (m.kind === "loaded") {
+        setCfg(m.cfg);
+        setLoad((s) => ({ ...s, done: true }));
+      } else if (m.kind === "result") {
+        setResponse(m.res); setMs(m.ms); setError(null); setBusy(false);
+      } else if (m.kind === "error") {
+        setError(m.error); setResponse(null); setBusy(false);
+      }
+    };
+    w.postMessage({ id: nextId.current++, kind: "load" });
+    return () => w.terminate();
+  }, []);
+
+  const loaded = useMemo(
+    () => Object.values(load.files).reduce((a, f) => a + f.loaded, 0),
+    [load.files],
+  );
+  const fromCache = Object.values(load.files).some((f) => f.cached);
+
+  const parsed = useMemo(() => {
+    try {
+      const v = JSON.parse(request);
+      if (!v || typeof v !== "object" || !("questions" in v)) throw new Error("needs a questions object");
+      return { ok: true as const, v };
+    } catch (e) {
+      return { ok: false as const, why: (e as Error).message };
+    }
+  }, [request]);
+
+  const scriptWarning = useMemo(() => {
+    if (!parsed.ok) return null;
+    const s = (parsed.v as { state?: unknown }).state;
+    const text = typeof s === "string" ? s : JSON.stringify(s ?? "");
+    const f = nonLatinFraction(text);
+    return f > 0.3 ? Math.round(f * 100) : null;
+  }, [parsed]);
+
+  const run = useCallback(() => {
+    if (!parsed.ok || !worker.current) return;
+    setBusy(true); setError(null);
+    const { state = "", questions } = parsed.v as { state?: unknown; questions: unknown };
+    worker.current.postMessage({ id: nextId.current++, kind: "run", state, questions });
+  }, [parsed]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); run(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [run]);
+
+  const nQuestions = parsed.ok ? Object.keys((parsed.v as { questions: object }).questions ?? {}).length : 0;
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="shell">
+      <header className="bar">
+        <div className="bar-inner">
+          <div>
+            <h1 className="wordmark">Laya</h1>
+            <p className="tagline">
+              A decision model, not a chat model. It reads a state, scores the options you
+              enumerate, and returns one calibrated distribution per question. Runs entirely
+              in this tab.
+            </p>
+          </div>
+          <dl className="readout">
+            <div><dt>Checkpoint</dt><dd>ModernBERT-large</dd></div>
+            <div><dt>Weights</dt><dd>8-bit, 524 MB</dd></div>
+            <div><dt>Context</dt><dd>{cfg ? `${cfg.max_len} tok` : "—"}</dd></div>
+            <div><dt>Last run</dt><dd>{ms === null ? "—" : `${Math.round(ms)} ms`}</dd></div>
+          </dl>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+      </header>
+
+      {!load.done && (
+        <section className="load" aria-live="polite">
+          <div className="load-inner">
+            <div className="load-line">
+              <span>{fromCache ? "Reading weights from cache" : "Downloading weights"}</span>
+              <b>{mb(loaded)} / {mb(TOTAL_BYTES)} MB</b>
+            </div>
+            <div className="rule"><span style={{ width: `${Math.min(100, (loaded / TOTAL_BYTES) * 100)}%` }} /></div>
+          </div>
+        </section>
+      )}
+
+      <main>
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Request</h2>
+            <span className="panel-note">{nQuestions} question{nQuestions === 1 ? "" : "s"}</span>
+          </div>
+          <textarea
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+            spellCheck={false}
+            aria-label="Request JSON"
+          />
+          {scriptWarning !== null && (
+            <p className="notice">
+              {scriptWarning}% of this state is non-Latin script. This checkpoint is English-only
+              and stays confident while getting those wrong, so its confidence score will not
+              warn you. Read the result as unreliable.
+            </p>
+          )}
+          <div className="actions">
+            <button onClick={run} disabled={!load.done || busy || !parsed.ok}>
+              {busy ? "Running" : "Run request"}
+            </button>
+            <span className={`status${parsed.ok ? "" : " bad"}`}>
+              {!load.done ? "Loading model" : !parsed.ok ? parsed.why : busy ? "One forward pass per question" : "Cmd+Enter to run"}
+            </span>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Response</h2>
+            <span className="panel-note">
+              {response ? `${response.usage.input_tokens} input tokens` : ""}
+            </span>
+          </div>
+          {error ? (
+            <pre className="json" style={{ color: "var(--warn)" }}>{error}</pre>
+          ) : response ? (
+            <pre className="json">{JSON.stringify(response, null, 2)}</pre>
+          ) : (
+            <pre className="json empty">Run a request and the answers appear here, with the full probability distribution behind each one.</pre>
+          )}
+        </section>
+      </main>
+
+      <footer>
+        <div className="footer-inner">
+          <p style={{ margin: 0 }}>
+            Weights from{" "}
+            <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">convaiinnovations/laya</a>,
+            Apache 2.0. Quantized to 8-bit weight-only and run with onnxruntime-web on WebAssembly.
+          </p>
+          <p style={{ margin: 0 }}>
+            Question types: <code>noul</code> answers true or false, <code>choice</code> picks one
+            named option, <code>score</code> returns the expectation over ordered levels.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </footer>
+    </div>
+  );
 }
-
-export default App

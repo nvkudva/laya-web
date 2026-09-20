@@ -1,0 +1,5 @@
+# wasm threads need cross-origin isolation. credentialless, not require-corp, so a
+# weight host that sends no CORP header (the Hugging Face CDN) still loads.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless
