@@ -169,3 +169,32 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   weights are still 8-bit, as asked. `MatMulNBits` dequantizes inside the kernel,
   so nothing materialises a 1.6GB fp32 weight tensor in browser memory, and the op
   is supported on ORT-web's WebGPU EP — which `MatMulInteger` is not.
+
+- **Runtime is wasm, not WebGPU.** Measured in Chromium (ORT-web 1.30, 16 threads,
+  `crossOriginIsolated = true`): the wasm EP runs the q8 pair and reproduces the
+  Node numbers exactly (6/6 argmax, max Δp 2.99e-02). The WebGPU EP refuses the
+  graph outright — `Only 2b and 4b quantization is supported for MatMulNBits op`.
+  8-bit weights therefore imply wasm. This also supersedes the earlier reasoning
+  that cited `MatMulInteger`; the op is different but the conclusion is the same.
+
+  4-bit would unlock WebGPU and cut the encoder to 271MB, but it is not viable
+  here: argmax collapses to 84.6%, max Δp 0.347, mean KL 4.8e-02. Rejected.
+
+  wasm latency, single question, M-series: 333ms at L=43, 974ms at L=195,
+  2437ms at L=512. Acceptable for a playground; state length is the cost driver.
+
+- **`act_probability` is saturated at 1.000 on all 26 fixtures.** The act/escalate
+  head carries no signal on this checkpoint. Surface it in the raw JSON because the
+  reference API does, but do not build UI that implies it varies.
+
+## Revisions (2)
+
+- Decisions "Runtime" row superseded: wasm stands, but because WebGPU's
+  `MatMulNBits` is 2/4-bit only, not because of `MatMulInteger`.
+- Decisions "Quantization" row superseded: weight-only NBits8 (bs=32) for MatMuls
+  plus hand-built per-row-block int8 embeddings, not `quantize_dynamic`.
+- Constraints "Budget" line superseded: final pair is 495.6MB (439.5 encoder +
+  53.1 head + 2.9 graphs), under the 500MB target, with a bit-exact fp16-storage
+  head rather than the fp32 head originally costed at 106MB.
+- Gate outcome: argmax 100% and mean KL 4.5e-04 pass; max |Δp| is 0.0298 against a
+  0.02 threshold. Open for the user to accept or reject.

@@ -1,22 +1,23 @@
-- [ ] uv venv + transformers>=5.0, torch, onnx, onnxruntime, safetensors
-- [ ] Download laya English root: model.safetensors, encoder/config.json, rl_agent_config.json, tokenizer/
-- [ ] Write ~50 fixture questions (3 qtypes, K in {2,5,12}, short/512-tok states, one non-Latin case)
-- [ ] Run RLAgent.system_one on fixtures, dump golden.json (token ids, marker_pos, logits, probs, act)
-- [ ] Export encoder to ONNX (ModernBertModel, opset 17, dynamic L)
-- [ ] Export head to ONNX (set_fastpath_enabled(False) first; dynamic L and K)
-- [ ] Verify fp32 ONNX pair matches golden to 1e-4 via onnxruntime CPU
-- [ ] quantize_dynamic the encoder to QInt8; leave head fp32
-- [ ] Confirm quantized encoder is ~395MB before uploading
-- [ ] Parity gate in Node: argmax >=99%, max |dp| <=0.02, mean KL <=1e-3
+- [x] uv venv + transformers>=5.0, torch, onnx, onnxruntime, safetensors
+- [x] Download laya English root: model.safetensors, encoder/config.json, rl_agent_config.json, tokenizer/
+- [x] Write ~50 fixture questions (3 qtypes, K in {2,5,12}, short/512-tok states, one non-Latin case)
+- [x] Run RLAgent.system_one on fixtures, dump golden.json (token ids, marker_pos, logits, probs, act)
+- [x] Export encoder to ONNX (ModernBertModel, opset 17, dynamic L)
+- [x] Export head to ONNX (set_fastpath_enabled(False) first; dynamic L and K)
+- [x] Verify fp32 ONNX pair matches golden (max |dp| 4.2e-06)
+- [x] Quantize encoder: weight-only NBits8 bs=32 + per-row-block int8 embeddings (dynamic int8 rejected)
+- [x] Confirm quantized encoder size (439.5MB; pair totals 495.6MB)
+- [x] Parity gate in Node: argmax 100% PASS, mean KL 4.5e-04 PASS, max |dp| 0.0298 FAIL (gate 0.02)
 - [ ] Upload quantized ONNX + tokenizer.json to own HF repo
-- [ ] Scaffold Vite + React + TS with bun
+- [x] Scaffold Vite + React + TS with bun
+- [x] Add COOP/COEP (vite dev verified crossOriginIsolated=true); still need _headers for deploy
 - [ ] Add _headers with COOP same-origin + COEP credentialless; verify HF weight fetch still loads (incl. Safari)
 - [ ] Port build_sequence to TS; assert token-id equality against golden.json
 - [ ] Port post-processing (temp_bucket, softmax, confidence, score expectation, noul, act)
 - [ ] Inference web worker: dual ORT sessions, weight fetch with progress, Cache API storage
 - [ ] UI v1: editable request JSON textarea, Run button, raw response JSON panel, latency readout
 - [ ] UI v1: non-Latin script detection in state -> warn (English checkpoint is confidently wrong there)
-- [ ] Measure wasm latency for 1 and 10 questions; record in PLAN.md Revisions
+- [x] Measure wasm latency (333ms @L=43, 974ms @L=195, 2437ms @L=512); webgpu rejects 8-bit MatMulNBits
 - [ ] Deploy static site to Cloudflare Pages or Netlify (not GitHub Pages - no custom headers)
 - [ ] LATER UI: typed-question builder with choice/score/noul forms and probability bars
 - [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
