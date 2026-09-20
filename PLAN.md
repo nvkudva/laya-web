@@ -346,3 +346,13 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   the distribution below it saying how sure the model is. For `noul` the confidence
   shown is `|p − 0.5| × 2`, not the reported `confidence` field, which noul answers
   do not carry.
+
+## Revisions (11)
+
+- **Theme is selectable, not inherited.** The page followed `prefers-color-scheme`
+  with no override, so an OS set to light forced the light theme on a reader who
+  wanted dark. A header control cycles dark → light → system and persists the choice
+  in `localStorage` (wrapped, since private mode throws). `:root[data-theme="dark"]`
+  carries the dark tokens outside the media query so an explicit choice beats the OS.
+- Footer compressed to one line of icon + link, ~34px tall. The per-credit
+  descriptions moved to the README, where anyone who wants them is already looking.

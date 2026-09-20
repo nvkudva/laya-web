@@ -42,6 +42,26 @@
   }
 }
 
+/* Chosen explicitly, so it holds whatever the OS is set to. */
+:root[data-theme="dark"] {
+    --paper: #14181c;
+    --surface: #1a1f24;
+    --ink: #e4e8ea;
+    --muted: #8d979e;
+    --rule: #2c343a;
+    --rule-strong: #4a555d;
+    --signal: #6ea0ff;
+    --chart: #4a86f0;      /* re-stepped for dark: #6ea0ff fails the lightness band */
+    --track: #262e35;
+    --t-key: #e4e8ea;
+    --t-str: #5cc2a0;
+    --t-num: #7fb0ff;
+    --t-lit: #c99ad8;
+    --t-punct: #97a1a8;
+    --warn: #e0ae5c;
+    --warn-bg: #2b2415;
+}
+
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
@@ -147,7 +167,7 @@ button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .notice { flex: none; margin: 0; padding: 9px 12px; border-top: 1px solid var(--rule); background: var(--warn-bg); color: var(--warn); font-size: 12.5px; }
 
 footer { flex: none; border-top: 1px solid var(--rule); background: var(--surface); }
-.footer-inner { max-width: 1180px; margin: 0 auto; padding: 14px 16px 20px; color: var(--muted); font-size: 12.5px; display: grid; gap: 6px; }
+.footer-inner { max-width: 1680px; margin: 0 auto; padding: 7px 16px 8px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
 footer a { color: var(--signal); }
 
 @media (max-width: 600px) {
@@ -223,7 +243,7 @@ footer a { color: var(--signal); }
 }
 
 /* --- icons, presets block, credits --------------------------------------- */
-.icon { vertical-align: -2px; margin-right: 5px; flex: none; }
+.icon { vertical-align: -2px; margin-right: 4px; flex: none; opacity: 0.8; }
 .tagline .icon { margin: 0 0 0 3px; }
 
 .panel-qualifier { font-weight: 400; color: var(--muted); }
@@ -236,11 +256,17 @@ footer a { color: var(--signal); }
 .presets { padding: 7px 12px 0; }
 .preset-note { margin: 7px 12px 0; }
 
-.credits { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
-.credits li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
-.credit-label { min-width: 7.5em; color: var(--muted); }
-.credits a { font-family: var(--mono); font-size: 12px; }
+.credits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 16px; }
+.credits li { display: flex; align-items: baseline; gap: 0 5px; }
+.credits a { font-family: var(--mono); }
 .credit-note { color: var(--muted); }
-.credit-note a { font-family: var(--sans); font-size: 12.5px; }
-.footer-note { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--rule); }
-.footer-note code { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+
+/* --- theme toggle -------------------------------------------------------- */
+.theme-toggle {
+  margin-left: 12px; font: 400 11px var(--mono); padding: 2px 7px;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--rule); border-radius: 2px;
+}
+/* the global button:hover:not(:disabled) is (0,2,1) and would otherwise fill this
+   with the signal colour */
+button.theme-toggle:hover { color: var(--ink); border-color: var(--rule-strong); background: transparent; }

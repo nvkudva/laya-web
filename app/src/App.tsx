@@ -22,6 +22,21 @@ export default function App() {
   const [ms, setMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [preset, setPreset] = useState(PRESETS[0].id);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">(() => {
+    try { return (localStorage.getItem("laya-theme") as "light" | "dark") ?? "system"; } catch { return "system"; }
+  });
+
+  // Following prefers-color-scheme alone leaves no way out of an OS setting the
+  // reader does not want for this page.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "system") root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", theme);
+    try {
+      if (theme === "system") localStorage.removeItem("laya-theme");
+      else localStorage.setItem("laya-theme", theme);
+    } catch { /* private mode */ }
+  }, [theme]);
 
   useEffect(() => {
     let live = true;
@@ -118,6 +133,13 @@ export default function App() {
             <div><dt>Weights</dt><dd>8-bit + fp16, 524 MB</dd></div>
             <div><dt>Context</dt><dd>{cfg ? `${cfg.max_len} tok` : "—"}</dd></div>
             <div><dt>Last run</dt><dd>{ms === null ? "—" : `${Math.round(ms)} ms`}</dd></div>
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : t === "light" ? "system" : "dark"))}
+              title="Switch between dark, light and your system setting"
+            >
+              {theme}
+            </button>
           </dl>
         </div>
       </header>
@@ -217,53 +239,29 @@ export default function App() {
           <ul className="credits">
             <li>
               <Icon name="model" />
-              <span className="credit-label">Model</span>
-              <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">
-                convaiinnovations/laya
-              </a>
+              <a href="https://huggingface.co/convaiinnovations/laya" target="_blank" rel="noreferrer">convaiinnovations/laya</a>
               <span className="credit-note">
-                by <a href="https://github.com/NandhaKishorM" target="_blank" rel="noreferrer">Nandakishor M</a>,
-                {" "}Convai Innovations
+                by <a href="https://github.com/NandhaKishorM" target="_blank" rel="noreferrer">Nandakishor M</a>, Convai Innovations
               </span>
             </li>
             <li>
               <Icon name="source" />
-              <span className="credit-label">Model source</span>
-              <a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noreferrer">
-                NandhaKishorM/laya
-              </a>
-              <span className="credit-note">the original training and inference code</span>
+              <a href="https://github.com/NandhaKishorM/laya" target="_blank" rel="noreferrer">NandhaKishorM/laya</a>
             </li>
             <li>
               <Icon name="person" />
-              <span className="credit-label">Quantized by</span>
-              <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">
-                nvkudva/laya-web-q8
-              </a>
-              <span className="credit-note">8-bit weight-only, exported to ONNX for the browser</span>
+              <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">nvkudva/laya-web-q8</a>
+              <span className="credit-note">8-bit</span>
             </li>
             <li>
               <Icon name="source" />
-              <span className="credit-label">This page</span>
-              <a href="https://github.com/nvkudva/laya-web" target="_blank" rel="noreferrer">
-                nvkudva/laya-web
-              </a>
-              <span className="credit-note">export pipeline, parity harness and playground</span>
+              <a href="https://github.com/nvkudva/laya-web" target="_blank" rel="noreferrer">nvkudva/laya-web</a>
             </li>
             <li>
               <Icon name="scale" />
-              <span className="credit-label">Licence</span>
-              <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">
-                Apache 2.0
-              </a>
-              <span className="credit-note">weights and code alike</span>
+              <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">Apache 2.0</a>
             </li>
           </ul>
-          <p className="footer-note">
-            Runs on onnxruntime-web over WebAssembly. Question types: <code>noul</code> answers
-            true or false, <code>choice</code> picks one named option, <code>score</code> returns
-            the expectation over ordered levels.
-          </p>
         </div>
       </footer>
     </div>
