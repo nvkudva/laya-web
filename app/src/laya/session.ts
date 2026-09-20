@@ -68,7 +68,10 @@ export class LayaSession {
     // wasmPaths is not optional: left to the bundler, the production build emits the
     // asyncify and jsep variants but not the plain threaded one, and session creation
     // then hangs with no error rather than failing.
-    ort.env.wasm.wasmPaths = "/ort/";
+    // Production only. In dev, Vite refuses to transform a /public file that source
+    // code imports, and ORT reaches these by dynamic import at runtime; left alone it
+    // resolves them from node_modules, which dev serves happily.
+    if (import.meta.env.PROD) ort.env.wasm.wasmPaths = "/ort/";
     ort.env.wasm.numThreads = threads ?? Math.min(navigator.hardwareConcurrency || 4, 8);
     // Main thread, no proxy. In the production bundle, threaded wasm initialises only
     // here: both a user-created worker and ORT's own env.wasm.proxy hang with no error

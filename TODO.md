@@ -22,7 +22,8 @@
 - [x] Measure wasm latency (333ms @L=43, 974ms @L=195, 2437ms @L=512); webgpu rejects 8-bit MatMulNBits
 - [x] Smoke-test the production build (threaded wasm, main thread, 836ms for 3 questions)
 - [x] Deploy static site to Cloudflare Pages (https://laya-web.pages.dev)
-- [ ] LATER UI: typed-question builder with choice/score/noul forms and probability bars
+- [x] Probability bars for all three question types (distribution / json toggle)
+- [ ] LATER UI: typed-question form builder (add/remove questions without editing JSON)
 - [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
 - [ ] LATER UI: reliability diagram / ECE view over a small labelled set
 - [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])

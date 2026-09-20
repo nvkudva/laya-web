@@ -267,3 +267,22 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
 - Tested in Chromium only. Safari and Firefox ship `credentialless` on different
   timelines; if it is unsupported the page loses `crossOriginIsolated`, wasm drops to
   one thread, and inference goes from ~770ms to ~5s rather than breaking outright.
+
+## Revisions (7)
+
+- **Probability bars.** Each answer is one distribution, so each block is a *single
+  series*: one validated fill on a neutral track. That sidesteps a categorical
+  palette entirely — no legend, no hue assignment, and no CVD adjacency problem for
+  a `choice` with 14 options, where a stacked band would have been unreadable
+  slivers anyway. Rank is carried by ink weight on the label, never by colour.
+  - Fills validated with the dataviz palette script against the real surfaces:
+    light `#1d5fd4` passes the lightness band and 3:1 contrast on `#ffffff`;
+    `#6ea0ff` **failed** the dark lightness band (L 0.713) and was re-stepped to
+    `#4a86f0`, which passes both on `#1a1f24`.
+  - `score` rows are labelled `<level> <name>`, not a bare index: the answer is an
+    expectation in level units, so 1.36 is only readable against a numbered scale.
+  - The raw JSON stays as the table view behind a toggle, which is also what
+    discharges the accessibility requirement for a non-visual reading.
+- `ort.env.wasm.wasmPaths` is now set **only** under `import.meta.env.PROD`. Vite
+  refuses to transform a `/public` file that source code imports, so setting it in
+  dev breaks the dev server; left unset, dev resolves the runtime from node_modules.

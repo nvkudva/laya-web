@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_REQUEST, nonLatinFraction } from "./presets";
 import { LayaSession, type LoadProgress } from "./laya/session";
+import { Distribution } from "./Distribution";
 import type { LayaConfig, LayaResponse } from "./laya/types";
 
 const TOTAL_BYTES = 524_100_000;
@@ -17,6 +18,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [ms, setMs] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<"bars" | "json">("bars");
 
   useEffect(() => {
     let live = true;
@@ -149,9 +151,19 @@ export default function App() {
             <span className="panel-note">
               {response ? `${response.usage.input_tokens} input tokens` : ""}
             </span>
+            <div className="toggle" role="group" aria-label="Response view">
+              <button onClick={() => setView("bars")} aria-pressed={view === "bars"}>distribution</button>
+              <button onClick={() => setView("json")} aria-pressed={view === "json"}>json</button>
+            </div>
           </div>
           {error ? (
             <pre className="json" style={{ color: "var(--warn)" }}>{error}</pre>
+          ) : response && view === "bars" ? (
+            <div className="dist-scroll">
+              {Object.entries(response.answers).map(([id, a]) => (
+                <Distribution key={id} id={id} answer={a} />
+              ))}
+            </div>
           ) : response ? (
             <pre className="json">{JSON.stringify(response, null, 2)}</pre>
           ) : (
