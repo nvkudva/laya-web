@@ -13,5 +13,5 @@ export default defineConfig({
   server: { headers: isolation },
   preview: { headers: isolation },
   optimizeDeps: { exclude: ["onnxruntime-web"] },
-  build: { rollupOptions: { input: { main: "index.html", probe: "probe.html" } } },
+  build: { rollupOptions: { input: { main: "index.html", probe: "probe.html", parity: "parity.html" } } },
 });
