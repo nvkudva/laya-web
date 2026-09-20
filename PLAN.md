@@ -198,3 +198,16 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   head rather than the fp32 head originally costed at 106MB.
 - Gate outcome: argmax 100% and mean KL 4.5e-04 pass; max |Δp| is 0.0298 against a
   0.02 threshold. Open for the user to accept or reject.
+
+## Revisions (3)
+
+- Embeddings moved from per-row-block int8 to **fp16 storage**, at the user's call.
+  Like the head, it is **bit-exact** (max abs error 0.000e+00) for the same reason:
+  the checkpoint is bf16, and bf16's 8 mantissa bits fit inside fp16's 10.
+  The `Cast` goes *after* the `Gather`, so only the rows a request touches are
+  converted; casting before it would rebuild the whole 206MB fp32 table per forward.
+- MatMul block size back to 64 from 32: it is both smaller and better here
+  (Δp 0.0158 vs 0.0218 — the metric is a max over 26 fixtures, so it is noisy).
+- **The gate now passes in full**: argmax 100%, max |Δp| 0.0158, mean KL 1.84e-04.
+- Final pair **524.1MB** (470.8 encoder + 53.3 head). Over the 500MB target by 24MB,
+  accepted in exchange for clearing the parity gate.
