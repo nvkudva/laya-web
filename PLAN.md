@@ -211,3 +211,34 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
 - **The gate now passes in full**: argmax 100%, max |Δp| 0.0158, mean KL 1.84e-04.
 - Final pair **524.1MB** (470.8 encoder + 53.3 head). Over the 500MB target by 24MB,
   accepted in exchange for clearing the parity gate.
+
+## Revisions (4)
+
+- **The custom web worker is gone.** In the production bundle, ORT's threaded wasm
+  initialises only on the main thread. Measured on the same build:
+
+  | Where inference runs | Threads | Result |
+  |---|---|---|
+  | Main thread, no proxy | 8 | works — 836 ms for 3 questions |
+  | Main thread, `env.wasm.proxy = true` | 8 | hangs after the weights load, no error |
+  | User-created worker (module or classic) | 8 | hangs after the weights load, no error |
+  | User-created worker | 1 | works — 5056 ms for 3 questions |
+
+  All four work in `vite dev`, which is what makes this easy to ship broken. Both
+  nested-worker paths fail and neither throws; the tab simply never finishes loading.
+  Running on the main thread with threads is ~6x faster than the single-thread
+  fallback, so inference blocks the UI for the length of one forward pass
+  (~340 ms typical, ~2.4 s at the 512-token limit) rather than giving that up.
+  Worth revisiting on a later ORT-web release.
+
+- `ort.env.wasm.wasmPaths` must be set explicitly and the **jsep** runtime must be
+  served alongside the plain one. The bundler emits the asyncify and jsep `.wasm`
+  into `assets/` but not the plain threaded one, and the resolved ORT entry then asks
+  for `ort-wasm-simd-threaded.jsep.mjs`. A missing runtime file surfaces as
+  `no available backend found`, which does not name the file.
+  `app/scripts/copy-ort.mjs` copies both pairs into `public/ort/` and asserts on the
+  count, so a version bump that renames them fails the build instead of the page.
+
+- Weight URLs are versioned (`/models/v1/…`). The Cache API keys on URL, so
+  re-quantizing to the same path would pin every returning visitor to whatever they
+  cached first, silently.

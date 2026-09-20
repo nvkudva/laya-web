@@ -31,7 +31,9 @@ The dev server sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Poli
 which wasm threads require. `app/public/_headers` carries the same for Cloudflare Pages
 and Netlify; GitHub Pages cannot set headers and will fall back to single-thread wasm.
 
-Weights are served from `app/public/models` by default. Set `VITE_MODELS_BASE` to a
+Weights are served from `app/public/models/v1` by default. The version segment is
+part of the cache key, so re-quantizing means bumping it rather than silently
+serving stale weights to anyone who already cached them. Set `VITE_MODELS_BASE` to a
 Hugging Face repo URL to fetch them from there instead — see `app/.env.example`.
 
 ## Rebuilding the weights
@@ -40,12 +42,13 @@ Hugging Face repo URL to fetch them from there instead — see `app/.env.example
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python "torch>=2.6" "transformers>=5.0" \
   safetensors numpy onnx onnxscript onnxruntime
+source .venv/bin/activate
 cd export
 python make_fixtures.py && python dump_golden.py       # reference
 python export_onnx.py                                   # fp32 encoder + head
 python quantize_nbits.py --block-size 64 --out out/enc_nb8_bs64.onnx
 python embed_fp16.py --src out/enc_nb8_bs64.onnx --out out/encoder_q8.onnx
-python head_fp16_storage.py                             # -> out/head_f16s.onnx
+python head_fp16_storage.py                             # -> out/head_q8.onnx
 python verify_onnx.py --encoder out/encoder_q8.onnx --head out/head_q8.onnx --gate
 ```
 
@@ -74,8 +77,14 @@ checkpoint is bf16, whose 8 mantissa bits fit inside fp16's 10.
 
 This rules out WebGPU. ORT-web 1.30's WebGPU `MatMulNBits` kernel accepts 2 and 4 bits
 only. 4-bit would unlock it and cut the encoder to 271 MB, but argmax collapses to 84.6%
-and max Δp to 0.347. wasm it is: ~270 ms per question on short states, ~2.4 s at the
+and max Δp to 0.347. wasm it is: ~340 ms per question on short states, ~2.4 s at the
 512-token limit.
+
+Inference runs on the main thread. In a production bundle ORT's threaded wasm hangs
+with no error inside a user-created worker *and* inside its own `env.wasm.proxy`
+worker, while working on the main thread — and all three are fine under `vite dev`.
+Single-threaded in a worker works but is ~6x slower, so the UI blocks for one forward
+pass instead. `PLAN.md` has the measurements.
 
 ## Caveats
 

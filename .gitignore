@@ -19,3 +19,6 @@ dist/
 
 # downloaded upstream checkpoint
 export/laya-en/
+
+# copied from node_modules by scripts/copy-ort.mjs
+app/public/ort/

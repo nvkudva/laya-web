@@ -13,5 +13,6 @@ export default defineConfig({
   server: { headers: isolation },
   preview: { headers: isolation },
   optimizeDeps: { exclude: ["onnxruntime-web"] },
+  worker: { format: "iife" },
   build: { rollupOptions: { input: { main: "index.html", probe: "probe.html", parity: "parity.html" } } },
 });

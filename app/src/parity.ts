@@ -23,7 +23,7 @@ function firstDiff(a: number[], b: number[]) {
 (async () => {
   el.textContent = "";
   const data: { cfg: LayaConfig; cases: Case[] } = await (await fetch("/parity.json")).json();
-  const tok = await loadTokenizer("/models");
+  const tok = await loadTokenizer("/models/v1");
 
   log("=== gate 1: token ids and marker positions ===");
   let nq = 0, idsOk = 0, mkOk = 0, optOk = 0;
@@ -54,7 +54,7 @@ function firstDiff(a: number[], b: number[]) {
 
   log("=== gate 2: end-to-end vs reference response ===");
   const t0 = performance.now();
-  const laya = await LayaSession.load("/models", (p) => {
+  const laya = await LayaSession.load("/models/v1", (p) => {
     if (p.loaded === p.total) el.textContent = el.textContent.replace(/\n?loading.*$/, "") + `\nloading ${p.file} done${p.cached ? " (cached)" : ""}`;
   });
   log(`\nsession ready in ${((performance.now() - t0) / 1000).toFixed(1)}s`);

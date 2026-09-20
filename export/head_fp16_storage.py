@@ -6,7 +6,7 @@ rejected. Halves the head from 106MB to 53MB.
 import os, numpy as np, onnx
 from onnx import TensorProto, helper, numpy_helper
 
-SRC, OUT = "out/head_fp32.onnx", "out/head_f16s.onnx"
+SRC, OUT = "out/head_fp32.onnx", "out/head_q8.onnx"
 for f in (OUT, OUT + ".data"):
     if os.path.exists(f):
         os.remove(f)
@@ -26,5 +26,11 @@ for t in list(g.initializer):
     n += 1
 onnx.save(m, OUT, save_as_external_data=True, location=os.path.basename(OUT) + ".data",
           all_tensors_to_one_file=True, size_threshold=1024)
+mm = onnx.load(OUT, load_external_data=False)
+for t in mm.graph.initializer:
+    for kv in t.external_data:
+        if kv.key == "location":
+            kv.value = os.path.basename(OUT) + ".data"
+onnx.save(mm, OUT)
 print("%d tensors -> fp16 storage, %.1f MB" %
       (n, sum(os.path.getsize(f) for f in (OUT, OUT + ".data") if os.path.exists(f)) / 1e6))

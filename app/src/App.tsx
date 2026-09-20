@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_REQUEST, nonLatinFraction } from "./presets";
+import { LayaSession, type LoadProgress } from "./laya/session";
 import type { LayaConfig, LayaResponse } from "./laya/types";
 
 const TOTAL_BYTES = 524_100_000;
 const mb = (n: number) => (n / 1e6).toFixed(1);
 
-interface Loading { files: Record<string, { loaded: number; total: number; cached: boolean }>; done: boolean }
+interface Loading { files: Record<string, LoadProgress>; done: boolean }
 
 export default function App() {
-  const worker = useRef<Worker | null>(null);
-  const nextId = useRef(1);
+  const laya = useRef<LayaSession | null>(null);
   const [load, setLoad] = useState<Loading>({ files: {}, done: false });
   const [cfg, setCfg] = useState<LayaConfig | null>(null);
   const [request, setRequest] = useState(DEFAULT_REQUEST);
@@ -19,23 +19,17 @@ export default function App() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const w = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-    worker.current = w;
-    w.onmessage = (e) => {
-      const m = e.data;
-      if (m.kind === "progress") {
-        setLoad((s) => ({ ...s, files: { ...s.files, [m.file]: { loaded: m.loaded, total: m.total, cached: m.cached } } }));
-      } else if (m.kind === "loaded") {
-        setCfg(m.cfg);
-        setLoad((s) => ({ ...s, done: true }));
-      } else if (m.kind === "result") {
-        setResponse(m.res); setMs(m.ms); setError(null); setBusy(false);
-      } else if (m.kind === "error") {
-        setError(m.error); setResponse(null); setBusy(false);
-      }
-    };
-    w.postMessage({ id: nextId.current++, kind: "load" });
-    return () => w.terminate();
+    let live = true;
+    const threads = Number(new URLSearchParams(location.search).get("threads")) || undefined;
+    LayaSession.load("/models/v1", (p: LoadProgress) => {
+      if (live) setLoad((s) => ({ ...s, files: { ...s.files, [p.file]: p } }));
+    }, threads).then((s) => {
+      if (!live) return;
+      laya.current = s;
+      setCfg(s.cfg);
+      setLoad((st) => ({ ...st, done: true }));
+    }).catch((e) => live && setError(String(e?.message ?? e)));
+    return () => { live = false; };
   }, []);
 
   const loaded = useMemo(
@@ -62,11 +56,19 @@ export default function App() {
     return f > 0.3 ? Math.round(f * 100) : null;
   }, [parsed]);
 
-  const run = useCallback(() => {
-    if (!parsed.ok || !worker.current) return;
+  const run = useCallback(async () => {
+    if (!parsed.ok || !laya.current) return;
     setBusy(true); setError(null);
-    const { state = "", questions } = parsed.v as { state?: unknown; questions: unknown };
-    worker.current.postMessage({ id: nextId.current++, kind: "run", state, questions });
+    const { state = "", questions } = parsed.v as { state?: any; questions: any };
+    const t0 = performance.now();
+    try {
+      const res = await laya.current.systemOne(state, questions);
+      setResponse(res); setMs(performance.now() - t0);
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e)); setResponse(null);
+    } finally {
+      setBusy(false);
+    }
   }, [parsed]);
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export default function App() {
           </div>
           <dl className="readout">
             <div><dt>Checkpoint</dt><dd>ModernBERT-large</dd></div>
-            <div><dt>Weights</dt><dd>8-bit, 524 MB</dd></div>
+            <div><dt>Weights</dt><dd>8-bit + fp16, 524 MB</dd></div>
             <div><dt>Context</dt><dd>{cfg ? `${cfg.max_len} tok` : "—"}</dd></div>
             <div><dt>Last run</dt><dd>{ms === null ? "—" : `${Math.round(ms)} ms`}</dd></div>
           </dl>

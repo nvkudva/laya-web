@@ -61,9 +61,18 @@ export class LayaSession {
     this.head = head;
   }
 
-  static async load(base = "/models", onProgress?: (p: LoadProgress) => void): Promise<LayaSession> {
+  static async load(base = "/models", onProgress?: (p: LoadProgress) => void, threads?: number): Promise<LayaSession> {
     // wasm only: ORT-web's WebGPU MatMulNBits kernel accepts 2 and 4 bits, not 8.
-    ort.env.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 4, 8);
+    // wasmPaths is not optional: left to the bundler, the production build emits the
+    // asyncify and jsep variants but not the plain threaded one, and session creation
+    // then hangs with no error rather than failing.
+    ort.env.wasm.wasmPaths = "/ort/";
+    ort.env.wasm.numThreads = threads ?? Math.min(navigator.hardwareConcurrency || 4, 8);
+    // Main thread, no proxy. In the production bundle, threaded wasm initialises only
+    // here: both a user-created worker and ORT's own env.wasm.proxy hang with no error
+    // after the weights load, while the same code is fine in dev. Threads on the main
+    // thread are ~7x faster than falling back to numThreads=1, so inference blocks the
+    // UI for the length of one forward pass instead. See PLAN.md.
     const [cfg, tok] = await Promise.all([
       fetch(`${base}/rl_agent_config.json`).then((r) => r.json() as Promise<LayaConfig>),
       loadTokenizer(base),

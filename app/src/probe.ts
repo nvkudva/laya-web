@@ -23,9 +23,9 @@ async function tryEP(ep: "wasm" | "webgpu", probes: Probe[]) {
   // ORT-web will not fetch a graph's external .data file on its own -- it has to be
   // handed over explicitly, keyed by the exact location string stored in the graph.
   const mk = (name: string) =>
-    ort.InferenceSession.create(`/models/${name}.onnx`, {
+    ort.InferenceSession.create(`/models/v1/${name}.onnx`, {
       executionProviders: [ep],
-      externalData: [{ data: `/models/${name}.onnx.data`, path: `${name}.onnx.data` }],
+      externalData: [{ data: `/models/v1/${name}.onnx.data`, path: `${name}.onnx.data` }],
     });
   const enc = await mk("encoder_q8");
   const head = await mk("head_q8");

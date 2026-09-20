@@ -15,13 +15,15 @@
 - [ ] Verify HF weight fetch loads under COEP credentialless, incl. Safari
 - [x] Port build_sequence to TS; token ids 26/26 identical to reference
 - [x] Port post-processing (temp_bucket, softmax, confidence, score expectation, noul, act)
-- [x] Inference web worker: dual ORT sessions, weight fetch with progress, Cache API storage
+- [x] Weight fetch with progress + Cache API storage (worker removed: ORT threaded wasm hangs in workers in prod builds)
 - [x] UI v1: editable request JSON textarea, Run button, raw response JSON panel, latency readout
 - [x] UI v1: non-Latin script detection in state -> warn
 - [x] Measure wasm latency (333ms @L=43, 974ms @L=195, 2437ms @L=512); webgpu rejects 8-bit MatMulNBits
+- [x] Smoke-test the production build (threaded wasm, main thread, 836ms for 3 questions)
 - [ ] Deploy static site to Cloudflare Pages or Netlify (not GitHub Pages - no custom headers)
 - [ ] LATER UI: typed-question builder with choice/score/noul forms and probability bars
 - [ ] LATER UI: preset scenarios (email triage, moderation guardrail, support routing, sentiment)
 - [ ] LATER UI: reliability diagram / ECE view over a small labelled set
 - [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])
 - [ ] Exclude app/public/models from the production build once VITE_MODELS_BASE points at HF
+- [ ] Revisit off-main-thread inference on a later onnxruntime-web release
