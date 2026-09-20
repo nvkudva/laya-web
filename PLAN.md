@@ -328,3 +328,21 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   empty cell — so the page scrolls and each panel gets a readable slice instead.
   Measured: 1500px → 3 columns, panels 630px, no page scroll; 1000px → 2 columns,
   panels 441px, page scrolls.
+
+## Revisions (10)
+
+- **CodeMirror 6 replaces the painted-textarea overlay.** The overlay kept caret and
+  glyphs aligned only as long as two independent elements agreed on font, padding,
+  line-height, tab-size *and* wrapping — and it could not wrap at all without the two
+  layers breaking lines identically. CodeMirror owns the caret, so misalignment is
+  structurally impossible, and folding, line numbers, bracket matching and line
+  wrapping come with it. Verified: a click at page (414, 441) puts the caret at
+  (415, 438), mid-string.
+  - `theme="none"` on the wrapper. `@uiw/react-codemirror` injects a light theme by
+    default, which painted a white block over the panel in dark mode.
+  - The highlight style references the same CSS custom properties as the rest of the
+    page, so there is no second palette to keep in sync across light and dark.
+- **An `Answers` section heads the distribution column**: the decision alone, with
+  the distribution below it saying how sure the model is. For `noul` the confidence
+  shown is `|p − 0.5| × 2`, not the reported `confidence` field, which noul answers
+  do not carry.

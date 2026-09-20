@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
 import { LayaSession, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
-import { JsonEditor, JsonView } from "./Json";
+import { JsonEditor, JsonView } from "./JsonCode";
+import { Answers } from "./Answers";
 import { Icon } from "./Icon";
 import type { LayaConfig, LayaResponse } from "./laya/types";
 
@@ -157,7 +158,7 @@ export default function App() {
           </section>
           <JsonEditor
             value={request}
-            onChange={(v) => { setRequest(v); setPreset(""); }}
+            onChange={(v: string) => { setRequest(v); setPreset(""); }}
             label="Request JSON"
           />
           {scriptWarning !== null && (
@@ -186,6 +187,7 @@ export default function App() {
             <pre className="code json-view" style={{ color: "var(--warn)" }}>{error}</pre>
           ) : response ? (
             <div className="dist-scroll">
+              <Answers answers={response.answers} />
               {Object.entries(response.answers).map(([id, ans]) => (
                 <Distribution key={id} id={id} answer={ans} />
               ))}

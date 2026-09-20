@@ -29,3 +29,5 @@
 - [ ] LATER: multilingual checkpoint as on-demand second download + model switcher (needs its own temperature fit; ships with temperature=[1,1,1])
 - [x] Exclude app/public/models from the production build once VITE_MODELS_BASE points at HF
 - [ ] Revisit off-main-thread inference on a later onnxruntime-web release
+- [x] Answers summary at the top of the distribution column
+- [x] Replace the textarea overlay with CodeMirror (folding, line numbers, wrapping)
