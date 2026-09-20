@@ -16,3 +16,6 @@ __pycache__/
 node_modules/
 dist/
 .vite/
+
+# downloaded upstream checkpoint
+export/laya-en/
