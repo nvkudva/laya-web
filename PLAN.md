@@ -143,3 +143,29 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   from 61% to 13% of params, so the per-row int8 embedding fallback is no longer
   the likely fix and was replaced with a layer-exclusion ladder; total size rises
   to ~501MB; and a non-Latin-script warning becomes a UI requirement.
+
+- **INT8 dynamic quantization (`MatMulInteger`) fails outright on this model** and is
+  abandoned. Measured against golden, 26 questions:
+
+  | Variant | argmax | max \|Δp\| | mean KL | encoder size |
+  |---|---|---|---|---|
+  | fp32 (reference) | 100% | 4.2e-06 | 9.0e-09 | 1582MB |
+  | int8 dynamic, per-tensor | 69.2% | 0.990 | 5.6e-01 | 398MB |
+  | int8 dynamic, per-channel | 76.9% | 0.995 | 4.6e-01 | 399MB |
+  | int8 dynamic, **MatMul only** | 65.4% | 0.996 | 7.3e-01 | 553MB |
+  | int8 dynamic, **Gather only** | 100% | 0.216 | 8.0e-03 | 1427MB |
+  | weight-only NBits8, bs=32 | 100% | 0.0218 | 2.2e-04 | 595MB |
+  | **weight-only NBits8, bs=64** | **100%** | **0.0158** | **1.8e-04** | **574MB** |
+  | weight-only NBits8, bs=128 | 100% | 0.0194 | 1.7e-04 | 565MB |
+
+  The ablation localises the damage: quantizing **MatMuls** alone is catastrophic
+  (65.4%), quantizing **embeddings** alone is survivable (100%, but 0.216 max Δp).
+  Per-channel *weight* scales barely move it, which rules out weight precision as
+  the cause — the problem is **activation** quantization. ModernBERT has outlier
+  activation channels that a per-tensor dynamic scale cannot represent; this is the
+  same failure that motivated LLM.int8 and SmoothQuant.
+
+  **Weight-only** quantization leaves activations in fp32 and sidesteps it. The
+  weights are still 8-bit, as asked. `MatMulNBits` dequantizes inside the kernel,
+  so nothing materialises a 1.6GB fp32 weight tensor in browser memory, and the op
+  is supported on ORT-web's WebGPU EP — which `MatMulInteger` is not.
