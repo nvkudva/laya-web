@@ -121,15 +121,18 @@ export default function App() {
       <header className="bar">
         <div className="bar-inner">
           <div className="bar-head">
-            <h1 className="wordmark">Laya — System One decision model — running fully in browser</h1>
+            <h1 className="wordmark">Laya — System One decision model like Jev — running fully in browser</h1>
             <p className="tagline">
-              It is not a chat model: it reads a state, scores the options you enumerate, and
-              returns one calibrated distribution per question. It runs on onnxruntime-web over
-              WebAssembly, so nothing leaves the browser. Question types: <b>noul</b> answers
-              true or false, <b>choice</b> picks one named option, <b>score</b> returns the
-              expectation over ordered levels.{" "}
+              It is not a chat model. It is a System One model like{" "}
+              <a href="https://typesafe.ai" target="_blank" rel="noreferrer">Jev</a>. It takes a
+              state — any text or JSON as information context — and a set of typed questions, and
+              returns typed answers with mathematically calibrated probabilities in a single
+              forward pass, fast enough to run in your browser. No API needed: it runs on
+              onnxruntime-web over WebAssembly, so nothing leaves the browser. Question types:{" "}
+              <b>noul</b> answers true or false, <b>choice</b> picks one named option, <b>score</b>{" "}
+              returns the expectation over ordered levels.{" "}
               <a href="https://huggingface.co/nvkudva/laya-web-q8" target="_blank" rel="noreferrer">
-                More details<Icon name="external" />
+                More on Hugging Face<Icon name="external" />
               </a>
             </p>
           </div>
