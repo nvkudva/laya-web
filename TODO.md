@@ -8,11 +8,12 @@
 - [x] Quantize encoder: weight-only NBits8 bs=32 + per-row-block int8 embeddings (dynamic int8 rejected)
 - [x] Confirm quantized encoder size (439.5MB; pair totals 495.6MB)
 - [x] Parity gate in Node: argmax 100% PASS, mean KL 4.5e-04 PASS, max |dp| 0.0298 FAIL (gate 0.02)
-- [ ] Upload quantized ONNX + tokenizer.json to nvkudva/laya-web-q8 (needs your HF token)
+- [x] Upload quantized ONNX + tokenizer.json to nvkudva/laya-web-q8
 - [x] Scaffold Vite + React + TS with bun
 - [x] Add COOP/COEP (vite dev verified crossOriginIsolated=true); still need _headers for deploy
 - [x] Add _headers with COOP same-origin + COEP credentialless
-- [ ] Verify HF weight fetch loads under COEP credentialless, incl. Safari
+- [x] Verify HF weight fetch loads under COEP credentialless (Chromium; 772ms inference)
+- [ ] Verify the same in Safari and Firefox (credentialless support differs)
 - [x] Port build_sequence to TS; token ids 26/26 identical to reference
 - [x] Port post-processing (temp_bucket, softmax, confidence, score expectation, noul, act)
 - [x] Weight fetch with progress + Cache API storage (worker removed: ORT threaded wasm hangs in workers in prod builds)

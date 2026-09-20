@@ -255,3 +255,15 @@ the expectation), `noul` (boolean, always rendered `[false, true]`, answer is `p
   asyncify variant that is also over the cap — since `wasmPaths` always resolves to
   `/ort/`. `dist` goes from 95MB to 15MB, with no file over 25 MiB.
 - Deploy build verified with local weights: 767ms for the 3-question preset.
+
+## Revisions (6)
+
+- Deploy configuration verified end to end against the real CDN: a 15MB site fetching
+  524MB of weights cross-origin from `nvkudva/laya-web-q8` under
+  `COEP: credentialless`, `crossOriginIsolated = true`, 772ms for the 3-question
+  preset. **`require-corp` would have failed** — the HF CDN sends no
+  `Cross-Origin-Resource-Policy` header on any of the seven files, which is exactly
+  the case `credentialless` exists for.
+- Tested in Chromium only. Safari and Firefox ship `credentialless` on different
+  timelines; if it is unsupported the page loses `crossOriginIsolated`, wasm drops to
+  one thread, and inference goes from ~770ms to ~5s rather than breaking outright.
