@@ -1,53 +1,107 @@
 # laya-web
 
-**https://laya-web.pages.dev**
+[Laya](https://huggingface.co/convaiinnovations/laya) — a System One decision model —
+running entirely in the browser, as an 8-bit quantized copy of the English checkpoint.
 
-[Laya](https://huggingface.co/convaiinnovations/laya) running entirely in the browser,
-with an 8-bit quantized copy of the English checkpoint.
+**Live at [laya-web.pages.dev](https://laya-web.pages.dev)** · weights on
+[Hugging Face](https://huggingface.co/nvkudva/laya-web-q8)
 
-Laya is not a chat model. It reads a **state**, scores the **options you enumerate**, and
-returns one calibrated probability distribution per question in a single forward pass —
-no sampling, no tokens out. Three question types: `noul` (true/false), `choice` (pick one
-named option), `score` (expectation over ordered levels).
+![The playground: an editable JSON request on the left, probability distributions and the raw response on the right](docs/screenshot.png)
 
-## Layout
+Laya is not a chat model. It reads a **state** — any text or JSON — scores the **options
+you enumerate**, and returns one calibrated probability distribution per question in a
+single forward pass. No sampling, no tokens out.
+
+## Features
+
+- **Three question types.** `noul` (true/false), `choice` (pick one named option),
+  `score` (expectation over ordered levels).
+- **Calibrated probabilities**, not raw softmax: temperatures fitted per question type
+  and option count, plus an entropy-based confidence on every answer.
+- **Nothing leaves the tab.** onnxruntime-web over WebAssembly — no API key, no backend,
+  and no request carrying your state anywhere.
+- **524 MB of weights, cached across reloads** in the Cache API. The page shows how much
+  is cached and lets you delete it.
+- **Verified against the PyTorch reference.** `/parity.html` re-runs both gates in the
+  browser: byte-identical token ids, then end-to-end probabilities within 0.02.
+- **Five worked presets** — email triage, moderation, routing, review scoring, escalation
+  — each one state answered by three questions at once.
+
+## How it works
+
+Every question becomes one sequence, with a `[MASK]` marker in front of each option:
 
 ```
-export/        python: golden reference, ONNX export, quantization, parity verifier
-golden/        fixtures + the PyTorch reference dump everything is measured against
-app/           vite + react + ts playground; app/src/laya is the TS port of the model API
-PLAN.md        architecture, decisions, measured results, rejected alternatives
-TODO.md        task state
+[CLS] <type> question: <instructions> [SEP] [MASK] opt0 [MASK] opt1 … [SEP] <state> [SEP]
 ```
 
-## Running it
+1. **Tokenize** with transformers.js, straight from `tokenizer.json` — no model needed.
+2. **Encode** the sequence with the quantized ModernBERT-large encoder (512 tokens).
+3. **Read the markers.** The decision head takes the hidden states at the marker
+   positions plus the question type, and emits one logit per option.
+4. **Calibrate.** Divide by the temperature for that (type, option-count) bucket, then
+   softmax. The result is the answer: argmax for `choice`, `p[1]` for `noul`, the
+   expectation over levels for `score`.
+
+One forward pass per question, ~340 ms on short states and ~2.4 s at the 512-token limit.
+`app/src/laya` is a TypeScript port of the Python API in `export/`, and the two are held
+token-for-token identical by the parity gate.
+
+Threaded WebAssembly needs the page to be cross-origin isolated, so both the dev server
+(`app/vite.config.ts`) and the deploy (`app/public/_headers`) send
+`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+Without isolation the runtime silently drops to one thread and gets roughly 6× slower.
+
+## Running it locally
 
 ```bash
+bun install --cwd app
 bun run --cwd app dev
 ```
 
-Deploy:
+The dev server needs somewhere to fetch the 524 MB of weights from. Easiest is the
+published copy:
 
 ```bash
-bun run --cwd app build && bunx wrangler pages deploy app/dist --project-name laya-web
+echo 'VITE_MODELS_BASE=https://huggingface.co/nvkudva/laya-web-q8/resolve/main/v1' > app/.env.local
 ```
+
+Leave it unset instead to serve them from `app/public/models/v1`. To fill that directory
+from a local export, copy `export/out/{encoder_q8,head_q8}.onnx{,.data}` into it along
+with `tokenizer.json`, `tokenizer_config.json` and `rl_agent_config.json` from
+`export/laya-en`. The `v1` segment is part of the cache key: re-quantize and bump it, or
+returning visitors keep the stale weights.
 
 `/` is the playground, `/parity.html` re-runs both parity gates against the reference
 dump, `/probe.html` checks which execution providers accept the graph.
 
-The dev server sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`,
-which wasm threads require. `app/public/_headers` carries the same for Cloudflare Pages
-and Netlify; GitHub Pages cannot set headers and will fall back to single-thread wasm.
+## Deploying
 
-`dist` is 15MB and no file in it exceeds 25 MiB, which Cloudflare Pages requires.
-Getting there needed the `onnxruntime-web/wasm` entry rather than the default one
-(the jsep runtime's `.wasm` is 28.3MB) and a `vite.config.ts` step that drops the ORT
-`.wasm` the bundler emits into `assets/` but never loads.
+The site is a static bundle on Cloudflare Pages:
 
-Weights are served from `app/public/models/v1` by default. The version segment is
-part of the cache key, so re-quantizing means bumping it rather than silently
-serving stale weights to anyone who already cached them. Set `VITE_MODELS_BASE` to a
-Hugging Face repo URL to fetch them from there instead — see `app/.env.example`.
+```bash
+bun run --cwd app build
+bunx wrangler pages deploy app/dist --project-name laya-web
+```
+
+`dist` is 15 MB and no file in it exceeds Cloudflare's 25 MiB per-file cap. Getting there
+needed the `onnxruntime-web/wasm` entry rather than the default one (the jsep runtime's
+`.wasm` is 28.3 MB) and a `vite.config.ts` step that drops the ORT `.wasm` files the
+bundler emits into `assets/` but never loads.
+
+`app/public/_headers` carries the isolation headers for Cloudflare Pages and Netlify.
+GitHub Pages cannot set headers and will fall back to single-thread wasm.
+
+## Layout
+
+```
+app/           vite + react + ts playground; app/src/laya is the TS port of the model API
+export/        python: golden reference, ONNX export, quantization, parity verifier
+golden/        fixtures + the PyTorch reference dump everything is measured against
+hf/            the model card published with the weights
+PLAN.md        architecture, decisions, measured results, rejected alternatives
+TODO.md        task state
+```
 
 ## Rebuilding the weights
 

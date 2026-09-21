@@ -157,20 +157,6 @@ main {
 
 .json-view { flex: 1; min-height: 220px; overflow: auto; color: var(--muted); font-family: var(--mono); font-size: 12.5px; line-height: 1.6; margin: 0; padding: 12px; white-space: pre-wrap; }
 
-/* --- answers ------------------------------------------------------------- */
-.answers { padding: 11px 12px 12px; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--signal) 4%, transparent); }
-.answers-heading { margin: 0 0 8px; font-size: 11px; font-weight: 600; color: var(--muted); }
-.answer-list { margin: 0; display: grid; gap: 7px; }
-.answer { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
-.answer dt { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--muted); display: flex; align-items: baseline; gap: 6px; }
-.answer-type { font-size: 10.5px; font-weight: 400; opacity: 0.75; }
-.answer dd { margin: 0; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.answer-value { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.answer-detail { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* confidence, not probability: a short bar means the model is spread across options */
-.answer-meter { margin-left: auto; flex: none; width: 46px; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; align-self: center; }
-.answer-meter span { display: block; height: 100%; background: var(--chart); border-radius: 0 2px 2px 0; }
-
 .actions { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--rule); }
 button {
   font: 500 13px var(--sans); color: var(--surface); background: var(--rule-strong);

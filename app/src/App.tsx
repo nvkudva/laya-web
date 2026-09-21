@@ -3,9 +3,8 @@ import { DEFAULT_REQUEST, PRESETS, nonLatinFraction } from "./presets";
 import { LayaSession, cachedWeightBytes, deleteWeightCache, type LoadProgress } from "./laya/session";
 import { Distribution } from "./Distribution";
 import { JsonEditor, JsonView } from "./JsonCode";
-import { Answers } from "./Answers";
 import { Icon } from "./Icon";
-import type { LayaConfig, LayaResponse } from "./laya/types";
+import type { LayaConfig, LayaResponse, Questions, State } from "./laya/types";
 
 const TOTAL_BYTES = 524_100_000;
 const mb = (n: number) => (n / 1e6).toFixed(1);
@@ -82,7 +81,7 @@ export default function App() {
   const run = useCallback(async () => {
     if (!parsed.ok || !laya.current) return;
     setBusy(true); setError(null);
-    const { state = "", questions } = parsed.v as { state?: any; questions: any };
+    const { state = "", questions } = parsed.v as { state?: State; questions: Questions };
     const t0 = performance.now();
     try {
       const res = await laya.current.systemOne(state, questions);
@@ -237,7 +236,6 @@ export default function App() {
             <pre className="code json-view" style={{ color: "var(--warn)" }}>{error}</pre>
           ) : response ? (
             <div className="dist-scroll">
-              <Answers answers={response.answers} />
               {Object.entries(response.answers).map(([id, ans]) => (
                 <Distribution key={id} id={id} answer={ans} />
               ))}

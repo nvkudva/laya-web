@@ -25,6 +25,8 @@ language:
 **[▶ Try it — laya-web.pages.dev](https://laya-web.pages.dev)** — loads in a browser
 tab, runs on your own machine, sends nothing anywhere.
 
+![The playground: an editable JSON request on the left, probability distributions and the raw response on the right](screenshot.png)
+
 This is [`convaiinnovations/laya`](https://huggingface.co/convaiinnovations/laya) —
 the English ModernBERT-large checkpoint — exported to ONNX and quantized to 8-bit so
 it fits in a web page. **1688 MB of fp32 becomes 524 MB**, with argmax agreement

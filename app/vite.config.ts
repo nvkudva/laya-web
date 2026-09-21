@@ -3,11 +3,14 @@ import react from "@vitejs/plugin-react";
 import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 
-// COOP/COEP are required for wasm threads. credentialless (not require-corp) so a
-// cross-origin weight host without a CORP header still loads.
+// COOP/COEP are required for wasm threads, and must match app/public/_headers so dev
+// and production behave alike. require-corp, not credentialless: Safari does not
+// support credentialless and silently loses isolation there. The cross-origin weights
+// send no CORP header and do not need to -- COEP runs the CORP check only on no-cors
+// loads, and these arrive through fetch() in cors mode.
 const isolation = {
   "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Embedder-Policy": "credentialless",
+  "Cross-Origin-Embedder-Policy": "require-corp",
 };
 
 /** Two kinds of dead weight in dist:

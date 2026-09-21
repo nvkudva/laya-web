@@ -5,10 +5,10 @@
 import { buildSequence, renderOptions, toInternal } from "./laya/sequence";
 import { loadTokenizer } from "./laya/tokenizer";
 import { LayaSession } from "./laya/session";
-import type { LayaConfig, Questions, State } from "./laya/types";
+import type { LayaConfig, LayaResponse, Questions, State } from "./laya/types";
 
 interface Expect { input_ids: number[]; marker_pos: number[]; rendered_options: string[]; probs: number[]; k: number }
-interface Case { id: string; state: State; questions: Questions; expect: Record<string, Expect>; response: any }
+interface Case { id: string; state: State; questions: Questions; expect: Record<string, Expect>; response: LayaResponse }
 
 const el = document.getElementById("out")!;
 const log = (s = "") => { el.textContent += s + "\n"; };
@@ -65,8 +65,8 @@ function firstDiff(a: number[], b: number[]) {
     ms += performance.now() - t;
     for (const [qid, e] of Object.entries(c.expect)) {
       total++;
-      const a = res.answers[qid] as any;
-      const got: number[] = Object.values(a.probabilities ?? { 0: 1 - a.noul, 1: a.noul });
+      const a = res.answers[qid];
+      const got: number[] = a.type === "noul" ? [1 - a.noul, a.noul] : Object.values(a.probabilities);
       const dp = Math.max(...got.map((v, i) => Math.abs(v - e.probs[i])));
       maxDp = Math.max(maxDp, dp);
       if (got.indexOf(Math.max(...got)) === e.probs.indexOf(Math.max(...e.probs))) argmaxOk++;

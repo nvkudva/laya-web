@@ -16,6 +16,10 @@ __pycache__/
 node_modules/
 dist/
 .vite/
+*.local
+
+# macOS
+.DS_Store
 
 # downloaded upstream checkpoint
 export/laya-en/

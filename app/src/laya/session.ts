@@ -84,7 +84,7 @@ export class LayaSession {
     this.head = head;
   }
 
-  static async load(base = "/models", onProgress?: (p: LoadProgress) => void, threads?: number): Promise<LayaSession> {
+  static async load(base: string, onProgress?: (p: LoadProgress) => void, threads?: number): Promise<LayaSession> {
     // wasm only: ORT-web's WebGPU MatMulNBits kernel accepts 2 and 4 bits, not 8.
     // wasmPaths is not optional: left to the bundler, the production build emits the
     // asyncify and jsep variants but not the plain threaded one, and session creation
